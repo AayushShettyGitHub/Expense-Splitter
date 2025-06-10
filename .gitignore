@@ -1,0 +1,38 @@
+# Node.js Backend
+/backend/node_modules
+/backend/build
+/backend/.env # Keep your environment variables out of version control!
+/backend/npm-debug.log*
+/backend/yarn-debug.log*
+/backend/yarn-error.log*
+/backend/pids
+/backend/*.pid
+/backend/logs
+/backend/public/uploads # If you have a folder for user uploads, keep it out
+
+# Vite / React Frontend
+/frontend/node_modules
+/frontend/dist # The build output directory for Vite
+/frontend/.env # Keep your environment variables out of version control!
+/frontend/.env.*.local # More specific local environment files
+/frontend/.vite/ # Vite cache directory
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/temp
+/frontend/coverage # If you run tests with coverage
+
+# General
+.DS_Store
+.env # If you have a .env file in the root directory
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+.vscode/
+.idea/

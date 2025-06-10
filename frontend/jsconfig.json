@@ -1,0 +1,10 @@
+// D:\ExpenseSplitter\frontend\jsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"] // This alias points to your src folder
+    }
+  },
+  "include": ["src"]
+}
