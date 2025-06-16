@@ -3,7 +3,7 @@ import { fontFamily } from "tailwindcss/defaultTheme"
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"], // Enables dark mode based on a 'dark' class on HTML
+  darkMode: ["class"], 
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -65,11 +65,8 @@ export default {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		fontFamily: {
-  			sans: [
-  				'var(--font-sans)',
-                    ...fontFamily.sans
-                ]
-  		},
+        sans: [...fontFamily.sans], // system default: ui-sans-serif, system-ui, etc.
+      },
   		keyframes: {
   			'accordion-down': {
   				from: {

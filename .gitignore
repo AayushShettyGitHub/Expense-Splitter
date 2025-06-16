@@ -36,3 +36,5 @@ yarn-error.log*
 *.7z
 .vscode/
 .idea/
+
+.env
