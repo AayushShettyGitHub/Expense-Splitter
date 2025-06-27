@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { uploadImageToCloudinary } = require('../Controller/cloudinary'); 
+const { uploadImageToCloudinary } = require('../Controller/cloudinary');
 
+//User Schema
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -29,44 +30,15 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     min: [18, 'You must be at least 18 years old to sign up'],
   },
-
-
-  description: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-  nationality: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-  address: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-  phone: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-  interest: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-  profession: {
-    type: String,
-    default: '',
-    trim: true,
-  },
-
+  description: { type: String, default: '', trim: true },
+  nationality: { type: String, default: '', trim: true },
+  address: { type: String, default: '', trim: true },
+  phone: { type: String, default: '', trim: true },
+  interest: { type: String, default: '', trim: true },
+  profession: { type: String, default: '', trim: true },
   resetOTP: String,
   resetOTPExpiry: Date,
-}, {
-  timestamps: true,
-});
+}, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {
   if (this.password && this.isModified('password')) {
@@ -81,4 +53,40 @@ UserSchema.pre('save', async function (next) {
 });
 
 
-module.exports = mongoose.model('User', UserSchema);
+//Expense Schema
+const ExpenseSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Other'],
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  description: {
+    type: String,
+    trim: true,
+  },
+  paymentMode: {
+    type: String,
+    enum: ['Cash', 'UPI', 'Card', 'Netbanking', 'Other'],
+    default: 'Cash',
+  },
+}, { timestamps: true });
+
+
+const User = mongoose.model('User', UserSchema);
+const Expense = mongoose.model('Expense', ExpenseSchema);
+
+module.exports = { User, Expense };

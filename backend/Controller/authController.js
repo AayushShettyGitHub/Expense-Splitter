@@ -6,25 +6,25 @@ const { uploadImageToCloudinary } = require('./cloudinary');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Schema = require('../models/schema');
+const { User } = require('../models/schema');
 const { OAuth2Client } = require('google-auth-library');
 
-
-const clientID = process.env.GOOGLE_CLIENT_ID;
-const jwtSecret = process.env.JWT_SECRET;
-const client = new OAuth2Client(clientID);
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    const user = await Schema.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user || user.resetOTP !== otp || Date.now() > user.resetOTPExpiry) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
+
     user.resetOTP = null;
     user.resetOTPExpiry = null;
+    await user.save();
+
     res.status(200).json({ message: 'OTP verified successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to verify OTP', error: error.message });
@@ -35,14 +35,15 @@ exports.resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
-    const user = await Schema.findOne({ email });
+    const user = await User.findOne({ email });
+
     if (!user || Date.now() > user.resetOTPExpiry) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    
     user.password = newPassword;
-   
+    user.resetOTP = null;
+    user.resetOTPExpiry = null;
     await user.save();
 
     res.status(200).json({ message: 'Password reset successful' });
@@ -51,20 +52,18 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-
-
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await Schema.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'Email not found' });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
-    const expiry = Date.now() + 10 * 60 * 1000; 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 10 * 60 * 1000;
 
     user.resetOTP = otp;
     user.resetOTPExpiry = expiry;
@@ -78,32 +77,29 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-
 exports.registerUser = async (req, res) => {
-  const { name, email, password} = req.body;
+  const { name, email, password } = req.body;
 
   try {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
-    const existingUser = await Schema.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-  
+    const strongPasswordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({
+        message: "Password must contain letters, numbers, and at least one special character"
+      });
+    }
 
-    const user = new Schema({ name, email, password });
-
-
+    const user = new User({ name, email, password });
     await user.save();
 
- 
     const token = generateToken(user._id, res);
 
     res.status(201).json({
@@ -113,21 +109,13 @@ exports.registerUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-      
       },
     });
   } catch (err) {
     res.status(400).json({ error: 'Registration failed', details: err.message });
   }
 };
-/*
-{
-  "name": "Janer Doe",
-  "email": "janer.doe@example.com",
-  "password": "securepassword123",
-  "age": 28,
-  "profileImage": "https://picsum.photos/200/300" 
-}*/
+
 exports.updateUser = async (req, res) => {
   const {
     name,
@@ -143,7 +131,7 @@ exports.updateUser = async (req, res) => {
   } = req.body;
 
   try {
-    const user = await Schema.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -185,17 +173,15 @@ exports.updateUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Update User Error:', error);
     res.status(500).json({ message: 'Failed to update user', error: error.message });
   }
 };
-
 
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await Schema.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
@@ -229,7 +215,6 @@ exports.logout = (req, res) => {
     res.cookie("jwt", "", { maxAge: 0 });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    console.log("Error in logout controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -246,24 +231,25 @@ exports.googleSignIn = async (req, res) => {
     const payload = ticket.getPayload();
     const { name, email, picture } = payload;
 
-    let user = await Schema.findOne({ email });
+    let user = await User.findOne({ email });
 
     if (!user) {
-      
-      const newUser = new Schema({
+      const newUser = new User({
         name,
         email,
         googleId: payload.sub,
         profileImage: picture,
       });
 
-      user = await newUser.save(); 
+      user = await newUser.save();
     }
 
-    
-    const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '1h' });
-    res.json({ token });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.status(200).json({ token, user });
   } catch (err) {
-    res.status(400).json({ error: 'Failed to authenticate with Google', details: err.message });
+    res.status(400).json({ error: 'Google authentication failed', details: err.message });
   }
-};  
+};

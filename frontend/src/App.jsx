@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { Login  } from './WebComponents/AuthComponents/Login';
 
+import Homepage from './WebComponents/Pages/Homepage';
+
 
 function App() {
   
@@ -14,7 +16,7 @@ return (
       <Routes>
       <Route path="*" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/homepage" element={<h2>HomePage</h2>} />
+      <Route path="/homepage" element={<Homepage />} ></Route>
        </Routes>
     </Router>
    
