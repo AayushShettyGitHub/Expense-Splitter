@@ -1,13 +1,13 @@
 import React from "react";
 import Layout from "@/WebComponents/Pages/Layout";
-import PersonalDashboard from "@/WebComponents/Pages/PersonalDashboard";
+import Budget from "@/WebComponents/SideBarComponents/Budget";
 
-const Homepage = () => {
+const BudgetPage = () => {
   return (
     <Layout pageTitle="Manage Budget">
-      <PersonalDashboard />
+      <Budget />
     </Layout>
   );
 };
 
-export default Homepage;
+export default BudgetPage;

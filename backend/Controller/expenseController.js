@@ -20,6 +20,7 @@ const addExpense = async (req, res) => {
   paymentMode,
 });
 
+console.log("Creating expense for userId:", req.userId);
 
     const savedExpense = await expense.save();
     res.status(201).json(savedExpense);

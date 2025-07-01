@@ -9,7 +9,9 @@ exports.protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId; 
+    console.log("Decoded JWT:", decoded);
+req.userId = decoded.userId; // ✅ Fix this line
+
     next();
   } catch (error) {
     res.status(403).json({ message: "Unauthorized: Invalid token" });

@@ -178,23 +178,25 @@ exports.updateUser = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
+  console.log("Login route hit");
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
 
+    
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-
+    console.log("User found:", user);
     const isMatch = await bcrypt.compare(password, user.password);
-
+    console.log("Password match status:", isMatch);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-
+    
     const token = generateToken(user._id, res);
-
+    console.log("Token:",token)
     res.status(200).json({
       token,
       user: {
