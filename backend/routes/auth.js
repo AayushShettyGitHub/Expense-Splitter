@@ -4,12 +4,7 @@ const { registerUser,updateUser, loginUser, googleSignIn ,forgotPassword,resetPa
 const {protect} = require('../middleware/protect');
 const { addExpense,getExpenses } = require('../Controller/expenseController');
 const {addBudget,getBudget,updateBudget,deleteBudget} = require('../Controller/budgetController');
-console.log("budget handlers:", {
-  addBudget: typeof addBudget,
-  getBudget: typeof getBudget,
-  updateBudget: typeof updateBudget,
-  deleteBudget: typeof deleteBudget,
-});
+const { createGroup,getMyGroups ,acceptInvite,getGroupById} = require('../Controller/groupController');
 const router = express.Router();
 
 
@@ -30,11 +25,18 @@ router.post('/verify-otp', verifyOtp);
 router.post('/expenses', protect, addExpense); 
 router.get('/getExpenses', protect, getExpenses);
 
-console.log("addBudget type:", typeof addBudget); // should be 'function'
+
 
 router.post("/add", protect, addBudget);
 router.get("/get", protect, getBudget);
 router.put("/update/:id", protect, updateBudget);
 router.delete("/delete/:id", protect, deleteBudget);
+
+router.post("/create", protect,createGroup); 
+router.get("/my-groups", protect, getMyGroups);
+router.get("/groups/:groupId", protect,getGroupById );
+router.post("/accept-invite/:groupId", protect, acceptInvite);
+
+
 
 module.exports = router;

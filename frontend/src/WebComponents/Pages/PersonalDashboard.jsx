@@ -28,7 +28,7 @@ const months = ["",
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#00c49f", "#ffbb28", "#ff8042"];
 
 const PersonalDashboard = () => {
-  const currentMonth = new Date().getMonth();
+  const currentMonth = new Date().getMonth()+1;//for 1 based indexing
   const currentYear = new Date().getFullYear();
 
   const [month, setMonth] = useState(currentMonth.toString());
