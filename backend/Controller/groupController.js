@@ -1,5 +1,5 @@
 const Group = require("../models/groupSchema");
-
+const Split= require("../models/splitSchema");
 
 const {User} = require("../models/schema");
 
@@ -11,10 +11,10 @@ exports.createGroup = async (req, res) => {
   }
 
   try {
-    // Get current user
+ 
     const currentUser = await User.findById(req.userId);
 
-    // Find invitee users by email, excluding current user
+    
     const invitedUsers = await User.find({
       email: { $in: invitees },
       _id: { $ne: req.userId }
@@ -25,8 +25,8 @@ exports.createGroup = async (req, res) => {
     const group = new Group({
       name,
       admin: req.userId,
-      members: [req.userId], // Only creator for now
-      pendingInvites: invitedUserIds, // Others will accept
+      members: [req.userId], 
+      pendingInvites: invitedUserIds,
     });
 
     await group.save();
@@ -71,15 +71,26 @@ exports.getMyGroups = async (req, res) => {
 // GET /auth/group/:groupId
 exports.getGroupById = async (req, res) => {
   try {
-    const group = await Group.findById(req.params.groupId)
-      .populate("admin", "name email")
-      .populate("members", "name email");
+   const groupId = req.params.id;
+console.log("Requested group ID:", groupId);
 
-    if (!group) {
-      return res.status(404).json({ message: "Group not found" });
-    }
 
-    res.status(200).json(group);
+
+const group = await Group.findById(groupId)
+  .populate('admin')
+  .populate('members')
+  .lean();
+
+if (!group) {
+  return res.status(404).json({ message: 'Group not found' });
+}
+
+const expenses = await Split.find({ group: groupId });
+
+group.expenses = expenses;
+
+res.status(200).json(group);
+
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch group", error: err.message });
   }

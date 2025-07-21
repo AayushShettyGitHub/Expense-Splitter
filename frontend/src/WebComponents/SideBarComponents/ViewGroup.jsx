@@ -1,93 +1,233 @@
 "use client";
 
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useSelectedGroup } from "@/context/SelectedGroupContext";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useSelectedGroup } from "@/context/SelectedGroupContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const ViewGroup = () => {
-  const { selectedGroup: group, setSelectedGroup } = useSelectedGroup();
+  const { selectedGroup: initialGroup, setSelectedGroup } = useSelectedGroup();
+  const [group, setGroup] = useState(null);
+  const [balances, setBalances] = useState({});
+  const [amount, setAmount] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Fetch full group details
   useEffect(() => {
-    if (!group) navigate("/viewgroup");
-  }, [group]);
+    const fetchGroupDetails = async () => {
+      try {
+        if (!initialGroup?._id) {
+          navigate("/viewgroup");
+          return;
+        }
 
-  const kickMember = async (memberId) => {
+        const res = await axios.get(
+          `http://localhost:3000/auth/groups/${initialGroup._id}`,
+          { withCredentials: true }
+        );
+
+        const groupData = res.data;
+        setGroup(groupData);
+        setSelectedGroup(groupData);
+        calculateBalances(groupData.expenses || []);
+      } catch (err) {
+        console.error("Failed to fetch group", err);
+        toast({
+          title: "Error loading group",
+          description: err.response?.data?.message || err.message,
+        });
+      }
+    };
+
+    fetchGroupDetails();
+  }, [initialGroup]);
+
+  const calculateBalances = (expenses) => {
+    const bal = {};
+
+    expenses.forEach((expense) => {
+      const payerId = expense.paidBy?._id;
+      const totalAmount = expense.amount;
+      const share = totalAmount / (expense.sharedWith?.length || 1);
+
+      expense.sharedWith?.forEach((member) => {
+        const memberId = member._id;
+
+        if (memberId === payerId) return;
+
+        bal[payerId] = (bal[payerId] || 0) + share;
+        bal[memberId] = (bal[memberId] || 0) - share;
+      });
+    });
+
+    setBalances(bal);
+  };
+
+  const addExpense = async () => {
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      toast({ title: "Invalid amount" });
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `http://localhost:3000/auth/group/${group._id}/expense`,
+        { amount: parseFloat(amount), description: "Manual expense", splitBetween: group.members.map(m => m._id), paidBy: group.admin._id },
+        { withCredentials: true }
+      );
+
+      const updatedGroup = await axios.get(
+        `http://localhost:3000/auth/groups/${group._id}`,
+        { withCredentials: true }
+      );
+
+      setGroup(updatedGroup.data);
+      setSelectedGroup(updatedGroup.data);
+      calculateBalances(updatedGroup.data.expenses || []);
+      setAmount("");
+      toast({ title: "Expense added successfully" });
+    } catch (err) {
+      toast({
+        title: "Failed to add expense",
+        description: err.response?.data?.message || err.message,
+      });
+    }
+  };
+
+  const handleKick = async (memberId) => {
     try {
       await axios.post(
         `http://localhost:3000/auth/group/${group._id}/kick`,
         { memberId },
         { withCredentials: true }
       );
-      toast({ title: "Member removed" });
 
-      const res = await axios.get(`http://localhost:3000/auth/group/${group._id}`, {
-        withCredentials: true,
-      });
-      setSelectedGroup(res.data);
+      const updatedGroup = await axios.get(
+        `http://localhost:3000/auth/groups/${group._id}`,
+        { withCredentials: true }
+      );
+
+      setGroup(updatedGroup.data);
+      setSelectedGroup(updatedGroup.data);
+      calculateBalances(updatedGroup.data.expenses || []);
+      toast({ title: "Member removed" });
     } catch (err) {
-      toast({ title: "Kick failed", description: err.message });
+      toast({
+        title: "Failed to remove member",
+        description: err.response?.data?.message || err.message,
+      });
     }
   };
 
-  if (!group) return null;
+  if (!group) {
+    return <p>Loading group data...</p>;
+  }
 
   return (
-    <div className="p-4">
-      <Button variant="ghost" onClick={() => navigate("/viewgroup")}>
-        ← Back to My Groups
-      </Button>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">{group.name}</h1>
 
-      <Card className="mt-4">
+      {/* Members List */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-xl">{group.name}</CardTitle>
-          <p className="text-muted-foreground text-sm">Admin: {group.admin?.name}</p>
+          <CardTitle>Members</CardTitle>
         </CardHeader>
-
         <CardContent>
-          <Tabs defaultValue="expenses" className="w-full">
-            <TabsList className="flex gap-2">
-              <TabsTrigger value="expenses">Expenses</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="expenses">
-              <p className="text-sm">Expense splitting feature coming soon...</p>
-            </TabsContent>
-
-            <TabsContent value="members">
-              <ul className="space-y-2 mt-2">
-                {group.members.map((member) => (
-                  <li
-                    key={member._id}
-                    className="flex justify-between items-center border p-2 rounded"
+          <ul className="space-y-2">
+            {group.members.map((member) => (
+              <li
+                key={member._id}
+                className="flex items-center justify-between text-sm"
+              >
+                <span>{member.name}</span>
+                {group.admin._id === member._id ? (
+                  <span className="text-xs text-green-600">Admin</span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleKick(member._id)}
                   >
-                    <span>{member.name}</span>
-                    {member._id !== group.admin?._id && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => kickMember(member._id)}
-                      >
-                        Kick
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </TabsContent>
+                    Kick
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
-            <TabsContent value="settings">
-              <p className="text-sm text-muted-foreground">Group settings coming soon...</p>
-            </TabsContent>
-          </Tabs>
+      {/* Add Expense */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Expense</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label>Amount</Label>
+          <Input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount"
+          />
+          <Button onClick={addExpense}>Add Expense</Button>
+        </CardContent>
+      </Card>
+
+      {/* Expenses List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Expenses</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {group.expenses?.length > 0 ? (
+            group.expenses.map((expense, idx) => (
+              <div key={idx} className="text-sm">
+                {expense.paidBy?.name || "Someone"} paid ₹
+                {expense.amount} shared with{" "}
+                {expense.sharedWith?.map((m) => m.name).join(", ")}
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">No expenses yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Balances */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Balances</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {Object.keys(balances).length === 0 ? (
+            <p className="text-muted-foreground">No balances yet.</p>
+          ) : (
+            Object.entries(balances).map(([id, bal]) => {
+              const member = group.members.find((m) => m._id === id);
+              return (
+                <div key={id} className="text-sm">
+                  {member?.name}:{" "}
+                  <span
+                    className={bal >= 0 ? "text-green-600" : "text-red-600"}
+                  >
+                    ₹{bal.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>

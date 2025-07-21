@@ -1,4 +1,5 @@
-import * as React from "react"
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Bot,
@@ -10,12 +11,12 @@ import {
   Send,
   Settings2,
   SquareTerminal,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavProjects } from "@/components/nav-projects";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -24,7 +25,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
   user: {
@@ -35,35 +36,34 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/homepage",
       icon: SquareTerminal,
-      isActive: true,
     },
     {
       title: "Expenses",
-      url: "#",
+      url: null,
       icon: BookOpen,
       items: [
-        { title: "Add Expense", url: "/expenses/add" },
-        { title: "View Expenses", url: "/expenses" },
+        { title: "Add Expense", url: "/manage" },
+        { title: "View Expenses", url: "/view" },
       ],
     },
     {
       title: "Budgets",
-      url: "#",
+      url: null,
       icon: PieChart,
       items: [
-        { title: "Set Budget", url: "/budgets/set" },
-        { title: "Budget Overview", url: "/budgets" },
+        { title: "Set Budget", url: "/budget" },
+        { title: "Budget Overview", url: "/budget" }, // Adjust if needed
       ],
     },
     {
       title: "Groups",
-      url: "#",
+      url: null,
       icon: Frame,
       items: [
-        { title: "Create Group", url: "/groups/create" },
-        { title: "My Groups", url: "/groups" },
+        { title: "Create Group", url: "/group" },
+        { title: "My Groups", url: "/viewgroup" },
       ],
     },
     {
@@ -80,42 +80,47 @@ const data = {
   navSecondary: [
     {
       title: "Support",
-      url: "#",
+      url: "/support",
       icon: LifeBuoy,
     },
     {
       title: "Feedback",
-      url: "#",
+      url: "/feedback",
       icon: Send,
     },
   ],
   projects: [
     {
       name: "Design Engineering",
-      url: "#",
+      url: "/project/design",
       icon: Frame,
     },
     {
       name: "Sales & Marketing",
-      url: "#",
+      url: "/project/sales",
       icon: PieChart,
     },
     {
       name: "Travel",
-      url: "#",
+      url: "/project/travel",
       icon: Map,
     },
   ],
-}
+};
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }) {
+  const navigate = useNavigate();
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <button
+                onClick={() => navigate("/homepage")}
+                className="flex w-full items-center gap-2"
+              >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Command className="size-4" />
                 </div>
@@ -123,19 +128,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate font-semibold">ExpenseSplit</span>
                   <span className="truncate text-xs">Dashboard</span>
                 </div>
-              </a>
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={data.navMain} navigate={navigate} />
+        <NavProjects projects={data.projects} navigate={navigate} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" navigate={navigate} />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
