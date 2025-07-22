@@ -221,14 +221,15 @@ exports.logout = (req, res) => {
   }
 };
 
-exports.getCurrentUser= (req, res) => {
+exports.getCurrentUser = async (req, res) => {
   try {
-    const user =User.findById(req.user._id).select("-password");
+    const user = await User.findById(req.userId).select("-password");
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
 };
+
 
 
 exports.googleSignIn = async (req, res) => {

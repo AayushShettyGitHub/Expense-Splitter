@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -14,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -54,7 +52,7 @@ const data = {
       icon: PieChart,
       items: [
         { title: "Set Budget", url: "/budget" },
-        { title: "Budget Overview", url: "/budget" }, // Adjust if needed
+        { title: "Budget Overview", url: "/budget" },
       ],
     },
     {
@@ -65,6 +63,11 @@ const data = {
         { title: "Create Group", url: "/group" },
         { title: "My Groups", url: "/viewgroup" },
       ],
+    },
+    {
+      title: "Your Invites",
+      url: "/invites",
+      icon: Send,
     },
     {
       title: "Assistant",
@@ -89,23 +92,7 @@ const data = {
       icon: Send,
     },
   ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "/project/design",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "/project/sales",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "/project/travel",
-      icon: Map,
-    },
-  ],
+  projects: [],
 };
 
 export function AppSidebar({ ...props }) {
@@ -136,7 +123,6 @@ export function AppSidebar({ ...props }) {
 
       <SidebarContent>
         <NavMain items={data.navMain} navigate={navigate} />
-        <NavProjects projects={data.projects} navigate={navigate} />
         <NavSecondary items={data.navSecondary} className="mt-auto" navigate={navigate} />
       </SidebarContent>
 

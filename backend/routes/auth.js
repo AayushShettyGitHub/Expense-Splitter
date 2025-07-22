@@ -5,7 +5,7 @@ const {protect} = require('../middleware/protect');
 const { addExpense,getExpenses } = require('../Controller/expenseController');
 const {addExpenseGroup,getExpensesByGroup  } = require('../Controller/splitController');
 const {addBudget,getBudget,updateBudget,deleteBudget} = require('../Controller/budgetController');
-const { createGroup,getMyGroups ,acceptInvite,getGroupById} = require('../Controller/groupController');
+const { createGroup,getMyGroups ,acceptInvite,getGroupById,sendInvite,kickUser} = require('../Controller/groupController');
 const router = express.Router();
 
 
@@ -38,6 +38,9 @@ router.post("/create", protect,createGroup);
 router.get("/my-groups", protect, getMyGroups);
 router.get("/groups/:id", protect,getGroupById );
 router.post("/accept-invite/:id", protect, acceptInvite);
+router.post("/send-invite/:id", protect, sendInvite);
+router.post('/kick/:groupId/:userId', protect, kickUser);
+
 
 
 router.post("/group/:id/expense", protect, addExpenseGroup);
