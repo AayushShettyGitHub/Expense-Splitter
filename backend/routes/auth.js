@@ -3,7 +3,7 @@ const express = require('express');
 const { registerUser,updateUser, loginUser, googleSignIn ,forgotPassword,resetPassword,verifyOtp,getCurrentUser} = require('../Controller/authController');
 const {protect} = require('../middleware/protect');
 const { addExpense,getExpenses } = require('../Controller/expenseController');
-const {addExpenseGroup,getExpensesByGroup  } = require('../Controller/splitController');
+const {addExpenseGroup,getExpensesByGroup ,getOptimizedSettlements } = require('../Controller/splitController');
 const {addBudget,getBudget,updateBudget,deleteBudget} = require('../Controller/budgetController');
 const { createGroup,getMyGroups ,acceptInvite,getGroupById,sendInvite,kickUser} = require('../Controller/groupController');
 const router = express.Router();
@@ -45,6 +45,8 @@ router.post('/kick/:groupId/:userId', protect, kickUser);
 
 router.post("/group/:id/expense", protect, addExpenseGroup);
 router.get("/group/:id/expenses",protect,getExpensesByGroup);
+router.get("/group/:groupId/settlements", getOptimizedSettlements);
+
 
 
 module.exports = router;

@@ -61,6 +61,10 @@ const ViewGroup = () => {
   const [paidBy, setPaidBy] = useState("");
   const [splitWith, setSplitWith] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [settlements, setSettlements] = useState([]);
+const [settled, setSettled] = useState(false); 
+const [loadingSettlement, setLoadingSettlement] = useState(false);
+
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -127,6 +131,7 @@ useEffect(() => {
     }
 
     try {
+      console.log("Adding expense with data:", group._id, )
       await axios.post(
         `http://localhost:3000/auth/group/${group._id}/expense`,
         {
@@ -223,6 +228,7 @@ useEffect(() => {
             <TabsTrigger value="add">Add Expense</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="invite">Invite</TabsTrigger>
+            <TabsTrigger value="settlements">Settlements</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -398,6 +404,65 @@ useEffect(() => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="settlements">
+  <Card>
+    <CardHeader>
+      <CardTitle>Final Settlements</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <Button
+  onClick={async () => {
+    try {
+      setLoadingSettlement(true);
+      const settlementRes = await axios.get(
+        `http://localhost:3000/auth/group/${group._id}/settlements`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      // ✅ FIX: Use settlementRes.data
+      const data = settlementRes.data;
+      const settlementArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.settlements)
+        ? data.settlements
+        : [];
+
+      setSettlements(settlementArray);
+      setSettled(true);
+    } catch (err) {
+      console.error("Settlement fetch error:", err);
+    } finally {
+      setLoadingSettlement(false);
+    }
+  }}
+  disabled={loadingSettlement}
+>
+  {loadingSettlement ? "Calculating..." : "Settle Expenses"}
+</Button>
+
+
+      {settled && (
+        <div className="space-y-2">
+          {settlements.length === 0 ? (
+            <p className="text-gray-500">No settlements needed.</p>
+          ) : (
+            settlements.map((s, index) => (
+              <div key={index} className="text-sm">
+                <span className="text-red-600 font-medium">{s.from}</span> owes{" "}
+                <span className="text-green-600 font-medium">{s.to}</span>{" "}
+                ₹{s.amount.toFixed(2)}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
         </Tabs>
       </main>
     </div>
