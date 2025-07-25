@@ -1,217 +1,179 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { format } from "date-fns";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 const ViewExpense = () => {
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const fetchExpenses = async (params = {}) => {
-    setLoading(true);
+  // Filter state synced with searchParams
+  const [category, setCategory] = useState(searchParams.get("category") || "all");
+  const [month, setMonth] = useState(searchParams.get("month") || "");
+  const [year, setYear] = useState(searchParams.get("year") || "");
+
+  const fetchExpenses = async (filters = {}) => {
     try {
-      const res = await axios.get("http://localhost:3000/auth/getExpenses", {
-        params,
-        withCredentials: true,
-      });
+      const userId = localStorage.getItem("userId");
+      const queryParams = new URLSearchParams();
+
+      queryParams.append("userId", userId);
+      if (filters.month) queryParams.append("month", filters.month);
+      if (filters.year) queryParams.append("year", filters.year);
+      if (filters.category && filters.category !== "all")
+        queryParams.append("category", filters.category);
+
+      const res = await axios.get(
+        `http://localhost:3000/auth/getExpenses?${queryParams.toString()}`,
+        { withCredentials: true }
+      );
+
       setExpenses(res.data);
       setFiltered(res.data);
-    } catch (err) {
-      console.error("Error fetching expenses:", err);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Expense fetch error:", error);
     }
   };
 
+  // Initial + searchParams-based fetch
   useEffect(() => {
-    fetchExpenses({ days: 30 });
-  }, []);
+    const monthParam = searchParams.get("month");
+    const yearParam = searchParams.get("year");
+    const categoryParam = searchParams.get("category");
 
+    setMonth(monthParam || "");
+    setYear(yearParam || "");
+    setCategory(categoryParam || "all");
+
+    fetchExpenses({
+      month: monthParam,
+      year: yearParam,
+      category: categoryParam,
+    });
+  }, [searchParams]);
+
+  // Filter by search input + category on frontend
   useEffect(() => {
     let filteredData = [...expenses];
-    if (search) {
+
+    if (search.trim()) {
       filteredData = filteredData.filter((e) =>
         e.description?.toLowerCase().includes(search.toLowerCase())
       );
     }
-    if (category) {
+
+    if (category && category !== "all") {
       filteredData = filteredData.filter((e) => e.category === category);
     }
+
     setFiltered(filteredData);
   }, [search, category, expenses]);
 
-  const handleFilterByMonthYear = () => {
-    if (month && year) {
-      fetchExpenses({ month, year });
-    }
+  const handleApplyFilters = () => {
+    const params = {};
+    if (month) params.month = month;
+    if (year) params.year = year;
+    if (category && category !== "all") params.category = category;
+
+    setSearchParams({ intent: "get_expenses", ...params });
   };
 
   const handleResetFilters = () => {
     setSearch("");
-    setCategory("");
     setMonth("");
     setYear("");
-    fetchExpenses({ days: 30 });
+    setCategory("all");
+    setSearchParams({});
   };
-
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:3000/deleteExpense/${id}`, {
-        withCredentials: true,
-      });
-      fetchExpenses({ days: 30 });
-    } catch (err) {
-      console.error("Failed to delete expense:", err);
-    }
-  };
-
-  const totalSpent = filtered.reduce((sum, e) => sum + e.amount, 0);
-
-  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
-    label: new Date(0, i).toLocaleString("default", { month: "long" }),
-    value: String(i + 1),
-  }));
-
-  const yearOptions = [];
-  const currentYear = new Date().getFullYear();
-  for (let y = currentYear; y >= currentYear - 10; y--) {
-    yearOptions.push({ label: String(y), value: String(y) });
-  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Your Expenses</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center flex-wrap">
-            <Input
-              placeholder="Search by description"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="md:w-1/3"
-            />
+    <div className="p-4">
+      <div className="mb-4 flex flex-wrap gap-4">
+        <input
+          type="text"
+          placeholder="Search by description"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-2 py-1 rounded"
+        />
 
-            <Select onValueChange={setCategory} value={category}>
-              <SelectTrigger className="md:w-40">
-                <SelectValue placeholder="Filter by Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="Food">Food</SelectItem>
-                <SelectItem value="Travel">Travel</SelectItem>
-                <SelectItem value="Shopping">Shopping</SelectItem>
-                <SelectItem value="Bills">Bills</SelectItem>
-                <SelectItem value="Health">Health</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="all">All Categories</option>
+          <option value="food">Food</option>
+          <option value="travel">Travel</option>
+          <option value="shopping">Shopping</option>
+          <option value="other">Other</option>
+        </select>
 
-            <Select onValueChange={setMonth} value={month}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <select
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="">Month</option>
+          {Array.from({ length: 12 }, (_, i) => {
+            const m = (i + 1).toString().padStart(2, "0");
+            return (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            );
+          })}
+        </select>
 
-            <Select onValueChange={setYear} value={year}>
-              <SelectTrigger className="w-28">
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y.value} value={y.value}>
-                    {y.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="">Year</option>
+          {["2023", "2024", "2025"].map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
 
-            <Button onClick={handleFilterByMonthYear}>Apply Month & Year</Button>
-            <Button variant="outline" onClick={handleResetFilters}>
-              Reset Filters
-            </Button>
-          </div>
+        <button
+          onClick={handleApplyFilters}
+          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+        >
+          Apply Filters
+        </button>
 
-          {/* Table */}
-          <div className="overflow-auto">
-            <table className="w-full text-left border-collapse mt-4">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-2">Amount</th>
-                  <th className="p-2">Category</th>
-                  <th className="p-2">Date</th>
-                  <th className="p-2">Description</th>
-                  <th className="p-2">Mode</th>
-                  <th className="p-2 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="6" className="text-center py-4">Loading...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center py-4">No expenses found.</td></tr>
-                ) : (
-                  filtered.map((exp) => (
-                    <tr key={exp._id} className="border-b hover:bg-muted/30">
-                      <td className="p-2">₹{exp.amount}</td>
-                      <td className="p-2">{exp.category}</td>
-                      <td className="p-2">
-                        {format(new Date(exp.date), "dd MMM yyyy")}
-                      </td>
-                      <td className="p-2">{exp.description || "-"}</td>
-                      <td className="p-2">{exp.paymentMode}</td>
-                      <td className="p-2 text-center">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(exp._id)}
-                        >
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <button
+          onClick={handleResetFilters}
+          className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500"
+        >
+          Reset
+        </button>
+      </div>
 
-          {/* Total */}
-          <div className="text-right font-semibold text-lg">
-            Total: ₹{totalSpent}
-          </div>
-        </CardContent>
-      </Card>
+      <div>
+        {filtered.length === 0 ? (
+          <p className="text-gray-500">No expenses found.</p>
+        ) : (
+          <ul className="space-y-2">
+            {filtered.map((expense) => (
+              <li
+                key={expense._id}
+                className="border p-3 rounded shadow-sm bg-white"
+              >
+                <p><strong>{expense.description}</strong></p>
+                <p>Category: {expense.category}</p>
+                <p>Amount: ₹{expense.amount}</p>
+                <p>Date: {expense.date?.slice(0, 10)}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

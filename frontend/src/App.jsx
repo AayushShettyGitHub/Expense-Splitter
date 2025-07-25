@@ -14,6 +14,7 @@ import InvitePage from './WebComponents/Pages/InvitePage';
 import { Toaster } from '@/components/ui/toaster';
 import { ToastProviderWrapper } from '@/components/use-toast';
 import { SelectedGroupProvider } from './context/SelectedGroupContext';
+import AssistantPage from './WebComponents/Pages/AssistantPage';
 
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
             <Route path="/viewgroup" element={<Groups />} />
             <Route path="/groupview" element={<ViewGroupPage />} />
             <Route path="/invites" element={<InvitePage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </SelectedGroupProvider>

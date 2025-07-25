@@ -6,6 +6,8 @@ const { addExpense,getExpenses } = require('../Controller/expenseController');
 const {addExpenseGroup,getExpensesByGroup ,getOptimizedSettlements } = require('../Controller/splitController');
 const {addBudget,getBudget,updateBudget,deleteBudget} = require('../Controller/budgetController');
 const { createGroup,getMyGroups ,acceptInvite,getGroupById,sendInvite,kickUser} = require('../Controller/groupController');
+const { handleAssistantQuery } = require('../services/gemini');
+
 const router = express.Router();
 
 
@@ -47,6 +49,6 @@ router.post("/group/:id/expense", protect, addExpenseGroup);
 router.get("/group/:id/expenses",protect,getExpensesByGroup);
 router.get("/group/:groupId/settlements", getOptimizedSettlements);
 
-
+router.post("/ask", protect, handleAssistantQuery)
 
 module.exports = router;
