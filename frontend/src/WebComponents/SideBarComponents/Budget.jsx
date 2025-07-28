@@ -19,14 +19,15 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 
-const months = [
+const months = ["",
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
 
 const Budget = () => {
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth(); 
+  const currentMonth = (new Date().getMonth() + 1).toString();
+; 
  
 
   const [month, setMonth] = useState(currentMonth.toString());

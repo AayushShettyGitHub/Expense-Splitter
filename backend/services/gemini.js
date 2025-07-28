@@ -16,6 +16,7 @@ Your job is to interpret user queries and extract a structured JSON object with 
 
 Supported intent types:
 - "get_expenses_by_month" — When the user asks about spending in a specific month/year.
+- "add_expense" — When the user wants to add a new expense with details like amount, category, date, description, or payment mode.
 - "unknown_query" — When you can't understand the user's intent.
 
 🧠 ALWAYS respond with a raw JSON (no markdown, no explanations). Follow this exact format:
@@ -32,13 +33,16 @@ Response:
 }
 
 Example 2:
-User: Can you show me my February expenses from last year?
+User: I spent 1000 rupees today for travel to Shimla, paid via UPI. Please add this as an expense.
 Response:
 {
-  "intent": "get_expenses_by_month",
+  "intent": "add_expense",
   "data": {
-    "month": "February",
-    "year": "2024"
+    "amount": 1000,
+    "category": "Travel",
+    "description": "Shimla travel via UPI",
+    "paymentMode": "UPI",
+    "date": "today"
   }
 }
 
@@ -52,6 +56,7 @@ Response:
 
 Now interpret the following user query:
 `;
+
 
 
    const finalPrompt = `${systemPrompt}User: ${query}`;

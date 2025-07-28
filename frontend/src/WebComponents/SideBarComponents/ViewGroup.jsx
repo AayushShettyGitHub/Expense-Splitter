@@ -422,7 +422,7 @@ useEffect(() => {
         }
       );
 
-      // ✅ FIX: Use settlementRes.data
+     
       const data = settlementRes.data;
       const settlementArray = Array.isArray(data)
         ? data

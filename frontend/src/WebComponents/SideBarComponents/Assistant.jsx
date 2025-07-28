@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import { useToast } from "@/hooks/use-toast";
 const Assistant = () => {
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,17 +62,51 @@ const Assistant = () => {
 }
 
 
-        case "get_budget":
-          try {
-            const res = await axios.get("http://localhost:3000/auth/get", {
-              withCredentials: true,
-            });
-            setResponse(JSON.stringify(res.data, null, 2));
-          } catch (err) {
-            console.error("Error fetching budget:", err);
-            setResponse("Error fetching budget.");
-          }
-          break;
+        case "add_expense": {
+  const {
+    amount,
+    category,
+    description,
+    paymentMode,
+    date,
+    groupName, 
+  } = data;
+
+  if (!amount || !category || !description) {
+    toast("Missing required fields like amount, category, or description.");
+    return;
+  }
+
+  function capitalize(word) {
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+const formattedDate =
+  data.date === "today"
+    ? new Date().toISOString().slice(0, 10)
+    : data.date || new Date().toISOString().slice(0, 10);
+
+const expensePayload = {
+  amount: parseFloat(data.amount),
+  category: capitalize(data.category),  
+  description: data.description,
+  paymentMode: data.paymentMode || "Cash",
+  date: formattedDate,
+};
+
+
+  try {
+    await axios.post("http://localhost:3000/auth/expenses", expensePayload, {
+      withCredentials: true,
+    });
+    toast({ title: "Expense added successfully." });
+  } catch (err) {
+    console.error("Error adding expense:", err);
+    toast("Failed to add expense. Please try again.");
+  }
+  return;
+}
+
 
         case "show_groups":
           try {
