@@ -35,24 +35,17 @@ const useCurrentUser = () => {
   useEffect(() => {
     axios
       .get("http://localhost:3000/auth/getUser", {
-        withCredentials: true, 
+        withCredentials: true,
       })
-      .then((res) => {
-        setUser(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching current user", err);
-      });
+      .then((res) => setUser(res.data))
+      .catch((err) => console.error("Error fetching current user", err));
   }, []);
 
   return user;
-}
-
-
+};
 
 const ViewGroup = () => {
   const user = useCurrentUser();
-  console.log("Current user:", user);
   const { selectedGroup: initialGroup, setSelectedGroup } = useSelectedGroup();
   const [group, setGroup] = useState(null);
   const [balances, setBalances] = useState({});
@@ -62,44 +55,57 @@ const ViewGroup = () => {
   const [splitWith, setSplitWith] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [settlements, setSettlements] = useState([]);
-const [settled, setSettled] = useState(false); 
-const [loadingSettlement, setLoadingSettlement] = useState(false);
-
-
+  const [settled, setSettled] = useState(false);
+  const [loadingSettlement, setLoadingSettlement] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-useEffect(() => {
-  if (!initialGroup?._id) {
-    navigate("/viewgroup");
-    return;
-  }
-
-  const fetchGroupDetails = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/auth/groups/${initialGroup._id}`,
-        { withCredentials: true }
-      );
-
-      const groupData = res.data;
-      console.log("Fetched group data:", groupData);
-      setGroup(groupData);
-      setSelectedGroup(groupData); 
-      calculateBalances(groupData.expenses || []);
-      setPaidBy(groupData.admin._id);
-      setSplitWith(groupData.members.map((m) => m._id));
-    } catch (err) {
-      toast({
-        title: "Error loading group",
-        description: err.response?.data?.message || err.message,
-      });
+  useEffect(() => {
+    if (!initialGroup?._id) {
+      navigate("/viewgroup");
+      return;
     }
-  };
 
-  fetchGroupDetails();
-}, []); 
+    const fetchGroupDetailsAndSettlements = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/auth/groups/${initialGroup._id}`,
+          { withCredentials: true }
+        );
+        const groupData = res.data;
+        setGroup(groupData);
+        setSelectedGroup(groupData);
+        calculateBalances(groupData.expenses || []);
+        setPaidBy(groupData.admin._id);
+        setSplitWith(groupData.members.map((m) => m._id));
 
+        const settlementRes = await axios.get(
+          `http://localhost:3000/auth/settlements/${groupData._id}`,
+          { withCredentials: true }
+        );
+        const sData = settlementRes.data;
+
+        console.log("🔁 Settlement Response:", sData.settlements);
+
+        if (sData.settlements?.length > 0) {
+          setSettlements(sData.settlements);
+          setSettled(sData.settlementEnded || false);
+        }
+      } catch (err) {
+        if (err.response?.status === 404) {
+          setSettled(false);
+          setSettlements([]);
+        } else {
+          toast({
+            title: "Error loading data",
+            description: err.response?.data?.message || err.message,
+          });
+        }
+      }
+    };
+
+    fetchGroupDetailsAndSettlements();
+  }, []);
 
   const calculateBalances = (expenses) => {
     const bal = {};
@@ -107,7 +113,6 @@ useEffect(() => {
       const payerId = expense.paidBy?._id;
       const totalAmount = expense.amount;
       const share = totalAmount / (expense.sharedWith?.length || 1);
-
       expense.sharedWith?.forEach((member) => {
         const memberId = member._id;
         if (memberId === payerId) return;
@@ -129,9 +134,7 @@ useEffect(() => {
       toast({ title: "Please fill all fields" });
       return;
     }
-
     try {
-      console.log("Adding expense with data:", group._id, )
       await axios.post(
         `http://localhost:3000/auth/group/${group._id}/expense`,
         {
@@ -142,12 +145,10 @@ useEffect(() => {
         },
         { withCredentials: true }
       );
-
       const updated = await axios.get(
         `http://localhost:3000/auth/groups/${group._id}`,
         { withCredentials: true }
       );
-
       setGroup(updated.data);
       setSelectedGroup(updated.data);
       calculateBalances(updated.data.expenses || []);
@@ -164,30 +165,27 @@ useEffect(() => {
   };
 
   const handleKick = async (memberId) => {
-  try {
-    await axios.post(
-      `http://localhost:3000/auth/kick/${group._id}/${memberId}`,
-      {},
-      { withCredentials: true }
-    );
-
-    const updatedGroup = await axios.get(
-      `http://localhost:3000/auth/groups/${group._id}`,
-      { withCredentials: true }
-    );
-
-    setGroup(updatedGroup.data);
-    setSelectedGroup(updatedGroup.data);
-    calculateBalances(updatedGroup.data.expenses || []);
-    toast({ title: "Member removed" });
-  } catch (err) {
-    toast({
-      title: "Failed to remove member",
-      description: err.response?.data?.message || err.message,
-    });
-  }
-};
-
+    try {
+      await axios.post(
+        `http://localhost:3000/auth/kick/${group._id}/${memberId}`,
+        {},
+        { withCredentials: true }
+      );
+      const updatedGroup = await axios.get(
+        `http://localhost:3000/auth/groups/${group._id}`,
+        { withCredentials: true }
+      );
+      setGroup(updatedGroup.data);
+      setSelectedGroup(updatedGroup.data);
+      calculateBalances(updatedGroup.data.expenses || []);
+      toast({ title: "Member removed" });
+    } catch (err) {
+      toast({
+        title: "Failed to remove member",
+        description: err.response?.data?.message || err.message,
+      });
+    }
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail) return;
@@ -197,12 +195,10 @@ useEffect(() => {
         { email: inviteEmail },
         { withCredentials: true }
       );
-
       const updatedGroup = await axios.get(
         `http://localhost:3000/auth/groups/${group._id}`,
         { withCredentials: true }
       );
-
       setGroup(updatedGroup.data);
       setSelectedGroup(updatedGroup.data);
       setInviteEmail("");
@@ -219,7 +215,6 @@ useEffect(() => {
 
   return (
     <div className="flex h-screen">
-      {/* Main Area */}
       <main className="flex-1 p-6 overflow-y-auto w-full">
         <Tabs defaultValue="overview">
           <TabsList className="mb-4 flex flex-wrap">
@@ -231,7 +226,6 @@ useEffect(() => {
             <TabsTrigger value="settlements">Settlements</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
           <TabsContent value="overview">
             <Card>
               <CardHeader>
@@ -258,42 +252,39 @@ useEffect(() => {
           </TabsContent>
 
           <TabsContent value="expenses">
-  <Card>
-    <CardHeader>
-      <CardTitle>All Expenses</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-      {group.expenses?.length > 0 ? (
-        group.expenses.map((expense, idx) => (
-          <div
-            key={idx}
-            className="p-3 border rounded-md bg-gray-50 shadow-sm text-sm"
-          >
-            <div className="font-medium text-purple-700">
-              💸 {expense.paidBy?.name} paid ₹{expense.amount}
-            </div>
-            <div className="text-gray-700">
-              📄 Description: {expense.description}
-            </div>
-            <div className="text-gray-700">
-              👥 Split between:{" "}
-              {expense.splitBetween?.map((m) => m.name).join(", ")}
-            </div>
-            <div className="text-xs text-gray-400 mt-1">
-              🕒 {new Date(expense.createdAt).toLocaleString()}
-            </div>
-          </div>
-        ))
-      ) : (
-        <p className="text-gray-500">No expenses yet.</p>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>All Expenses</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 max-h-96 overflow-y-auto">
+                {group.expenses?.length > 0 ? (
+                  group.expenses.map((expense, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 border rounded-md bg-gray-50 shadow-sm text-sm"
+                    >
+                      <div className="font-medium text-purple-700">
+                        💸 {expense.paidBy?.name} paid ₹{expense.amount}
+                      </div>
+                      <div className="text-gray-700">
+                        📄 Description: {expense.description}
+                      </div>
+                      <div className="text-gray-700">
+                        👥 Split between:{" "}
+                        {expense.splitBetween?.map((m) => m.name).join(", ")}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        🕒 {new Date(expense.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No expenses yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-
-
-          {/* Add Expense Tab */}
           <TabsContent value="add">
             <Card>
               <CardHeader>
@@ -352,39 +343,38 @@ useEffect(() => {
           </TabsContent>
 
           <TabsContent value="members">
-  <Card>
-    <CardHeader>
-      <CardTitle>Group Members</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ul className="space-y-2">
-        {group.members.map((member) => (
-          <li
-            key={member._id}
-            className="flex items-center justify-between text-sm"
-          >
-            <span>{member.name}</span>
-            {group.admin._id === member._id ? (
-              <span className="text-xs text-green-600">Admin</span>
-            ) : member._id === user?._id ? (
-              <span className="text-xs text-blue-600">You</span>
-            ) : (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleKick(member._id)}
-              >
-                Kick
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </CardContent>
-  </Card>
-</TabsContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Group Members</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {group.members.map((member) => (
+                    <li
+                      key={member._id}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span>{member.name}</span>
+                      {group.admin._id === member._id ? (
+                        <span className="text-xs text-green-600">Admin</span>
+                      ) : member._id === user?._id ? (
+                        <span className="text-xs text-blue-600">You</span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleKick(member._id)}
+                        >
+                          Kick
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Invite Tab */}
           <TabsContent value="invite">
             <Card>
               <CardHeader>
@@ -405,60 +395,68 @@ useEffect(() => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="settlements">
+         <TabsContent value="settlements">
   <Card>
     <CardHeader>
       <CardTitle>Final Settlements</CardTitle>
     </CardHeader>
     <CardContent className="space-y-4">
-      <Button
-  onClick={async () => {
-    try {
-      setLoadingSettlement(true);
-      const settlementRes = await axios.get(
-        `http://localhost:3000/auth/group/${group._id}/settlements`,
-        {
-          withCredentials: true,
-        }
-      );
+      {!settled && settlements.length === 0 && (
+        <Button
+          onClick={async () => {
+            setLoadingSettlement(true);
+            try {
+              // Trigger settlement calculation
+              await axios.get(
+                `http://localhost:3000/auth/group/${group._id}/settlements`,
+                { withCredentials: true }
+              );
+              // Fetch calculated settlements
+              const newRes = await axios.get(
+                `http://localhost:3000/auth/settlements/${group._id}`,
+                { withCredentials: true }
+              );
 
-     
-      const data = settlementRes.data;
-      const settlementArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.settlements)
-        ? data.settlements
-        : [];
-
-      setSettlements(settlementArray);
-      setSettled(true);
-    } catch (err) {
-      console.error("Settlement fetch error:", err);
-    } finally {
-      setLoadingSettlement(false);
-    }
-  }}
-  disabled={loadingSettlement}
->
-  {loadingSettlement ? "Calculating..." : "Settle Expenses"}
-</Button>
-
-
-      {settled && (
-        <div className="space-y-2">
-          {settlements.length === 0 ? (
-            <p className="text-gray-500">No settlements needed.</p>
-          ) : (
-            settlements.map((s, index) => (
-              <div key={index} className="text-sm">
-                <span className="text-red-600 font-medium">{s.from}</span> owes{" "}
-                <span className="text-green-600 font-medium">{s.to}</span>{" "}
-                ₹{s.amount.toFixed(2)}
-              </div>
-            ))
-          )}
-        </div>
+              if (newRes.data && newRes.data.settlements?.length > 0) {
+                setSettlements(newRes.data.settlements); // wrap into array to match rendering format
+                setSettled(newRes.data.settlementEnded || false);
+              } else {
+                toast({ title: "No settlements found" });
+              }
+            } catch (err) {
+              toast({
+                title: "Settlement error",
+                description: err.response?.data?.message || err.message,
+              });
+            } finally {
+              setLoadingSettlement(false);
+            }
+          }}
+          disabled={loadingSettlement}
+        >
+          {loadingSettlement ? "Processing..." : "Settle Expenses"}
+        </Button>
       )}
+
+      {/* Render settlements if available */}
+      {console.log(settlements)}
+      {settlements?.length > 0 && (
+  <div className="space-y-4">
+    {settlements.map((s, idx) => (
+      <div key={idx} className="border p-3 rounded-md bg-gray-50 shadow-sm">
+        <div className="text-sm">
+          <span className="text-red-600 font-medium">{s.from}</span> owes{" "}
+          <span className="text-green-600 font-medium">{s.to}</span> ₹
+          {s.amount.toFixed(2)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Status: {s.status || "pending"}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
     </CardContent>
   </Card>
 </TabsContent>

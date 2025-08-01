@@ -1,6 +1,7 @@
 const Expense = require("../models/splitSchema");
 const Group = require("../models/groupSchema");
 const User = require("../models/schema"); 
+const Settlement = require("../models/settlement");
 
 exports.addExpenseGroup = async (req, res) => {
   const { id } = req.params;
@@ -60,10 +61,25 @@ exports.getExpensesByGroup = async (req, res) => {
 };
 
 
+
 exports.getOptimizedSettlements = async (req, res) => {
   const { groupId } = req.params;
 
   try {
+    console.log("🔍 Checking for existing settlements");
+
+    // ✅ Check if a settlement already exists
+    const existingSettlement = await Settlement.findOne({ group: groupId }).sort({ createdAt: -1 });
+
+    if (existingSettlement) {
+      return res.status(200).json({ 
+        message: "Settlement already exists", 
+        settlements: existingSettlement.settlements,
+        settlementEnded: existingSettlement.settlementEnded
+      });
+    }
+
+    // ✅ If no settlement, calculate it
     const expenses = await Expense.find({ group: groupId })
       .populate("paidBy", "_id name")
       .populate("splitBetween", "_id name");
@@ -72,7 +88,6 @@ exports.getOptimizedSettlements = async (req, res) => {
       return res.status(404).json({ message: "No expenses found for this group" });
     }
 
-    // Step 1: Calculate net balances
     const netBalance = {};
 
     expenses.forEach((expense) => {
@@ -92,7 +107,6 @@ exports.getOptimizedSettlements = async (req, res) => {
       netBalance[payer._id].balance += expense.amount;
     });
 
-    // Step 2: Separate debtors and creditors
     const debtors = [], creditors = [];
 
     for (const [id, { balance, name }] of Object.entries(netBalance)) {
@@ -100,7 +114,6 @@ exports.getOptimizedSettlements = async (req, res) => {
       else if (balance > 0.01) creditors.push({ id, name, balance });
     }
 
-    // Step 3: Greedy settlement algorithm
     const settlements = [];
 
     let i = 0, j = 0;
@@ -113,6 +126,7 @@ exports.getOptimizedSettlements = async (req, res) => {
         from: debtor.name,
         to: creditor.name,
         amount: Math.round(amount),
+        status: "pending", // ✅ Default status
       });
 
       debtor.balance += amount;
@@ -122,9 +136,76 @@ exports.getOptimizedSettlements = async (req, res) => {
       if (Math.abs(creditor.balance) < 0.01) j++;
     }
 
-    res.status(200).json({ settlements });
+    const saved = new Settlement({
+      group: groupId,
+      settlements,
+      settlementEnded: false,
+    });
+
+    await saved.save();
+
+    res.status(200).json({ 
+      message: "Settlements calculated and stored", 
+      settlements: saved.settlements,
+      settlementEnded: saved.settlementEnded
+    });
   } catch (err) {
     console.error("❌ Error in getOptimizedSettlements:", err);
     res.status(500).json({ message: "Failed to compute settlements", error: err.message });
+  }
+};
+
+
+exports.getSettlementsByGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const settlements = await Settlement.find({ group: groupId }).sort({ createdAt: -1 });
+
+    if (!settlements || settlements.length === 0) {
+      return res.status(404).json({ message: "No settlements found for this group." });
+    }
+
+    // Return the latest one only, assuming only one active settlement at a time
+    const latest = settlements[0];
+
+    res.status(200).json({
+      settlements: latest.settlements,
+      settlementEnded: latest.settlementEnded,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching settlements:", err.message);
+    res.status(500).json({ message: "Failed to fetch settlements." });
+  }
+};
+
+// routes/settlement.js
+exports.markSettlements= async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { from, to } = req.body;
+
+    const settlement = await Settlement.findOne({ group: groupId }).sort({ createdAt: -1 });
+    if (!settlement) return res.status(404).json({ message: "Settlement not found" });
+
+    // Update specific settlement transaction status
+    const transaction = settlement.settlements.find(
+      s => s.from === from && s.to === to && s.status === "pending"
+    );
+
+    if (!transaction) return res.status(404).json({ message: "Transaction not found or already completed" });
+
+    transaction.status = "completed";
+
+    // Check if all are completed
+    const allDone = settlement.settlements.every(s => s.status === "completed");
+    settlement.settlementEnded = allDone;
+
+    await settlement.save();
+
+    res.status(200).json({ message: "Transaction marked as completed", settlement });
+  } catch (err) {
+    console.error("❌ Error updating settlement:", err.message);
+    res.status(500).json({ message: "Failed to update settlement status." });
   }
 };
