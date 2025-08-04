@@ -445,8 +445,8 @@ const ViewGroup = () => {
     {settlements.map((s, idx) => (
       <div key={idx} className="border p-3 rounded-md bg-gray-50 shadow-sm">
         <div className="text-sm">
-          <span className="text-red-600 font-medium">{s.from}</span> owes{" "}
-          <span className="text-green-600 font-medium">{s.to}</span> ₹
+          <span className="text-red-600 font-medium">{s.fromName}</span> owes{" "}
+          <span className="text-green-600 font-medium">{s.toName}</span> ₹
           {s.amount.toFixed(2)}
         </div>
         <div className="text-xs text-gray-500">

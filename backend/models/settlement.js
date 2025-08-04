@@ -1,28 +1,47 @@
 const mongoose = require("mongoose");
 
-// Settlement.js (Mongoose model)
-const settlementSchema = new mongoose.Schema({
-  group: {
+const individualSettlementSchema = new mongoose.Schema({
+  from: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Group",
+    ref: "User",
+    required: true,
   },
-  settlements: [
-    {
-      from: String,
-      to: String,
-      amount: Number,
-      status: {
-        type: String,
-        enum: ["pending", "completed"],
-        default: "pending",
-      },
+  to: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  fromName: {
+    type: String,
+  },
+  toName: {
+    type: String,
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "completed"],
+    default: "pending",
+  },
+});
+
+const settlementSchema = new mongoose.Schema(
+  {
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      required: true,
     },
-  ],
-  settlementEnded: {
-    type: Boolean,
-    default: false,
+    settlements: [individualSettlementSchema],
+    settlementEnded: {
+      type: Boolean,
+      default: false,
+    },
   },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Settlement", settlementSchema);
-

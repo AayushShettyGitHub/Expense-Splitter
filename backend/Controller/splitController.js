@@ -1,7 +1,7 @@
 const Expense = require("../models/splitSchema");
 const Group = require("../models/groupSchema");
-const User = require("../models/schema"); 
 const Settlement = require("../models/settlement");
+const { User, Expense: Transaction } = require('../models/schema');
 
 exports.addExpenseGroup = async (req, res) => {
   const { id } = req.params;
@@ -68,7 +68,7 @@ exports.getOptimizedSettlements = async (req, res) => {
   try {
     console.log("🔍 Checking for existing settlements");
 
-    // ✅ Check if a settlement already exists
+  
     const existingSettlement = await Settlement.findOne({ group: groupId }).sort({ createdAt: -1 });
 
     if (existingSettlement) {
@@ -79,7 +79,6 @@ exports.getOptimizedSettlements = async (req, res) => {
       });
     }
 
-    // ✅ If no settlement, calculate it
     const expenses = await Expense.find({ group: groupId })
       .populate("paidBy", "_id name")
       .populate("splitBetween", "_id name");
@@ -123,11 +122,14 @@ exports.getOptimizedSettlements = async (req, res) => {
       const amount = Math.min(-debtor.balance, creditor.balance);
 
       settlements.push({
-        from: debtor.name,
-        to: creditor.name,
-        amount: Math.round(amount),
-        status: "pending", // ✅ Default status
-      });
+  from: debtor.id,
+  to: creditor.id,
+  fromName: debtor.name,
+  toName: creditor.name,
+  amount: Math.round(amount),
+  status: "pending"
+});
+
 
       debtor.balance += amount;
       creditor.balance -= amount;
@@ -143,6 +145,22 @@ exports.getOptimizedSettlements = async (req, res) => {
     });
 
     await saved.save();
+
+    for (const s of settlements) {
+      const fromUserId = s.from; 
+      const toUserId = s.to;     
+
+      const settlementExpense = new Transaction({
+        userId: fromUserId,
+        amount: s.amount,
+        category: "Settlement",
+        date: new Date(),
+        description: `You paid ₹${s.amount} to ${s.toName}`,
+        paymentMode: "Other",
+      });
+
+      await settlementExpense.save();
+    }
 
     res.status(200).json({ 
       message: "Settlements calculated and stored", 
@@ -166,7 +184,7 @@ exports.getSettlementsByGroup = async (req, res) => {
       return res.status(404).json({ message: "No settlements found for this group." });
     }
 
-    // Return the latest one only, assuming only one active settlement at a time
+  
     const latest = settlements[0];
 
     res.status(200).json({
@@ -188,7 +206,6 @@ exports.markSettlements= async (req, res) => {
     const settlement = await Settlement.findOne({ group: groupId }).sort({ createdAt: -1 });
     if (!settlement) return res.status(404).json({ message: "Settlement not found" });
 
-    // Update specific settlement transaction status
     const transaction = settlement.settlements.find(
       s => s.from === from && s.to === to && s.status === "pending"
     );
@@ -197,7 +214,7 @@ exports.markSettlements= async (req, res) => {
 
     transaction.status = "completed";
 
-    // Check if all are completed
+ 
     const allDone = settlement.settlements.every(s => s.status === "completed");
     settlement.settlementEnded = allDone;
 
