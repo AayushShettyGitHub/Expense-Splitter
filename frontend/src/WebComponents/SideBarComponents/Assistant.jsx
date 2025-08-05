@@ -2,12 +2,35 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
 const Assistant = () => {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+
+  const capitalize = (word) =>
+    word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : "";
+
+  const monthMap = {
+    january: "January", february: "February", march: "March", april: "April",
+    may: "May", june: "June", july: "July", august: "August",
+    september: "September", october: "October", november: "November", december: "December",
+  };
+
+  const normalizeMonth = (month) => {
+    if (!month) return null;
+    const lower = month.toLowerCase();
+    return monthMap[lower] || capitalize(month);
+  };
+
+  const getMonthNumber = (monthName) => {
+    if (!monthName) return null;
+    const lower = monthName.toLowerCase();
+    const months = Object.keys(monthMap);
+    return months.indexOf(lower) + 1;
+  };
 
   const handleQuerySubmit = async (e) => {
     e.preventDefault();
@@ -35,97 +58,124 @@ const Assistant = () => {
     try {
       switch (intent) {
         case "get_expenses_by_month": {
-  let month = data?.month;
-  const year = parseInt(data?.year) || new Date().getFullYear();
-  let category = data?.category?.toLowerCase() || "all";
+          const month = normalizeMonth(data?.month);
+          const year = parseInt(data?.year) || new Date().getFullYear();
+          const category = data?.category?.toLowerCase() || "all";
 
-  const monthMap = {
-    january: 1, february: 2, march: 3, april: 4,
-    may: 5, june: 6, july: 7, august: 8,
-    september: 9, october: 10, november: 11, december: 12,
-  };
+          const monthNumber = getMonthNumber(month);
 
-  if (typeof month === "string") {
-    const lower = month.toLowerCase();
-    month = monthMap[lower];
-  }
+          if (!monthNumber || monthNumber < 1 || monthNumber > 12) {
+            setResponse("Month not recognized. Try something like 'Show expenses for July 2025'.");
+            return;
+          }
 
-  if (!month || isNaN(month) || month < 1 || month > 12) {
-    setResponse("Month not recognized. Try something like 'Show expenses for July 2025'.");
-    return;
-  }
-
-  navigate(
-    `/view?intent=get_expenses&month=${month}&year=${year}&category=${category}`
-  );
-  return;
-}
-
+          navigate(`/view?intent=get_expenses&month=${monthNumber}&year=${year}&category=${category}`);
+          return;
+        }
 
         case "add_expense": {
-  const {
-    amount,
-    category,
-    description,
-    paymentMode,
-    date,
-    groupName, 
-  } = data;
+          const { amount, category, description, paymentMode, date } = data;
 
-  if (!amount || !category || !description) {
-    toast("Missing required fields like amount, category, or description.");
+          if (!amount || !category || !description) {
+            toast({ title: "Missing required fields like amount, category, or description." });
+            return;
+          }
+
+          const formattedDate =
+            date === "today"
+              ? new Date().toISOString().slice(0, 10)
+              : date || new Date().toISOString().slice(0, 10);
+
+          const expensePayload = {
+            amount: parseFloat(amount),
+            category: capitalize(category),
+            description,
+            paymentMode: paymentMode || "Cash",
+            date: formattedDate,
+          };
+
+          try {
+            await axios.post("http://localhost:3000/auth/expenses", expensePayload, {
+              withCredentials: true,
+            });
+            toast({ title: "Expense added successfully." });
+          } catch (err) {
+            console.error("Error adding expense:", err);
+            toast({ title: "Failed to add expense.", variant: "destructive" });
+          }
+          return;
+        }
+
+        case "set_budget": {
+  const { amount, month, year } = data;
+
+  const normalizedMonth = normalizeMonth(month);
+  const numericYear = parseInt(year);
+
+  if (!normalizedMonth || !amount || !numericYear) {
+    setResponse("Missing or invalid budget details.");
+    toast({ title: "Missing or invalid budget details.", variant: "destructive" });
     return;
   }
 
-  function capitalize(word) {
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-}
-
-const formattedDate =
-  data.date === "today"
-    ? new Date().toISOString().slice(0, 10)
-    : data.date || new Date().toISOString().slice(0, 10);
-
-const expensePayload = {
-  amount: parseFloat(data.amount),
-  category: capitalize(data.category),  
-  description: data.description,
-  paymentMode: data.paymentMode || "Cash",
-  date: formattedDate,
-};
-
-
   try {
-    await axios.post("http://localhost:3000/auth/expenses", expensePayload, {
-      withCredentials: true,
-    });
-    toast({ title: "Expense added successfully." });
+    let budgetExists = false;
+    let budgetId = null;
+
+    try {
+      const res = await axios.get(
+        `http://localhost:3000/auth/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1}&year=${numericYear}`,
+        { withCredentials: true }
+      );
+      budgetExists = true;
+      budgetId = res.data._id;
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        throw err; // true error
+      }
+      // If 404, we simply proceed to create
+    }
+
+    if (budgetExists && budgetId) {
+      await axios.put(
+        `http://localhost:3000/auth/update/${budgetId}`,
+        { amount },
+        { withCredentials: true }
+      );
+      setResponse(`Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
+      toast({ title: `Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
+    } else {
+      await axios.post(
+        `http://localhost:3000/auth/add`,
+        {
+          amount,
+          month: new Date(`${normalizedMonth} 1`).getMonth() + 1, // numeric month
+          year: numericYear,
+        },
+        { withCredentials: true }
+      );
+      setResponse(`Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
+      toast({ title: `Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
+    }
   } catch (err) {
-    console.error("Error adding expense:", err);
-    toast("Failed to add expense. Please try again.");
+    console.error("Error setting budget:", err);
+    setResponse("Failed to set budget.");
+    toast({ title: "Failed to set budget.", variant: "destructive" });
   }
+
   return;
 }
 
-
-        case "show_groups":
-          try {
-            const res = await axios.get("http://localhost:3000/auth/my-groups", {
-              withCredentials: true,
-            });
-            setResponse(JSON.stringify(res.data, null, 2));
-          } catch (err) {
-            console.error("Error fetching groups:", err);
-            setResponse("Error fetching groups.");
-          }
-          break;
 
         default:
           setResponse("Sorry, I couldn't understand your request.");
+          toast({ title: "Unknown command received.", variant: "destructive" });
+          return;
       }
     } catch (err) {
       console.error("Intent handling error:", err);
       setResponse("Error handling your request.");
+      toast({ title: "Unexpected error occurred.", variant: "destructive" });
     }
   };
 

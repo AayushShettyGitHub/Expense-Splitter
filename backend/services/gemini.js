@@ -17,6 +17,7 @@ Your job is to interpret user queries and extract a structured JSON object with 
 Supported intent types:
 - "get_expenses_by_month" — When the user asks about spending in a specific month/year.
 - "add_expense" — When the user wants to add a new expense with details like amount, category, date, description, or payment mode.
+- "set_budget" — When the user wants to set or update a monthly budget.
 - "unknown_query" — When you can't understand the user's intent.
 
 🧠 ALWAYS respond with a raw JSON (no markdown, no explanations). Follow this exact format:
@@ -47,6 +48,18 @@ Response:
 }
 
 Example 3:
+User: Set my budget for August 2025 as 10000
+Response:
+{
+  "intent": "set_budget",
+  "data": {
+    "amount": 10000,
+    "month": "August",
+    "year": "2025"
+  }
+}
+
+Example 4:
 User: Tell me something cool
 Response:
 {
@@ -56,6 +69,7 @@ Response:
 
 Now interpret the following user query:
 `;
+
 
 
 

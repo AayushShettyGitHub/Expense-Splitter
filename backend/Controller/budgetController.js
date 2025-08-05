@@ -2,6 +2,7 @@ const Budget = require("../models/budgetSchema");
 
 // POST /budget/add
 exports.addBudget = async (req, res) => {
+  console.log("Yooooooo add")
   const { month, year, amount } = req.body;
 
   try {
@@ -36,6 +37,7 @@ exports.addBudget = async (req, res) => {
 
 // GET /budget/get?month=6&year=2025
 exports.getBudget = async (req, res) => {
+  console.log("Yooooooo get")
   const userId = req.userId;    
   const { month, year } = req.query;
 
@@ -57,6 +59,7 @@ exports.getBudget = async (req, res) => {
       year: budget.year,
     });
   } catch (err) {
+    console.error("🔥 Error in getBudget:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -64,6 +67,7 @@ exports.getBudget = async (req, res) => {
 
 // PUT /budget/update/:id
 exports.updateBudget = async (req, res) => {
+  console.log("Yooooooo update")
   const { id } = req.params;
   const { amount } = req.body;
 
