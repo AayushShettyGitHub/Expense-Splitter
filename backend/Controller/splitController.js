@@ -192,37 +192,60 @@ exports.getSettlementsByGroup = async (req, res) => {
       settlementEnded: latest.settlementEnded,
     });
   } catch (err) {
-    console.error("❌ Error fetching settlements:", err.message);
+    console.error("Error fetching settlements:", err.message);
     res.status(500).json({ message: "Failed to fetch settlements." });
   }
 };
 
-// routes/settlement.js
-exports.markSettlements= async (req, res) => {
+
+exports.markSettlementPaid = async (req, res) => {
+  console.log("Marking settlement as paid");
   try {
-    const { groupId } = req.params;
-    const { from, to } = req.body;
+    const { groupId, settlementId } = req.params;
+    const userId = req.userId;
 
-    const settlement = await Settlement.findOne({ group: groupId }).sort({ createdAt: -1 });
-    if (!settlement) return res.status(404).json({ message: "Settlement not found" });
+    console.log("Group ID:", groupId);
+    console.log("Settlement ID:", settlementId);
+    console.log("User ID:", userId);
 
-    const transaction = settlement.settlements.find(
-      s => s.from === from && s.to === to && s.status === "pending"
-    );
+    // Get the settlement doc for the group
+    const settlementDoc = await Settlement.findOne({ group: groupId });
+    if (!settlementDoc) {
+      return res.status(404).json({ message: "Settlement document not found" });
+    }
 
-    if (!transaction) return res.status(404).json({ message: "Transaction not found or already completed" });
+    // Find the specific settlement in the array
+    const settlement = settlementDoc.settlements.id(settlementId);
+    if (!settlement) {
+      return res.status(404).json({ message: "Settlement not found" });
+    }
 
-    transaction.status = "completed";
+    // Ensure only the receiver can mark as paid
+    if (settlement.to.toString() !== userId) {
+      return res.status(403).json({
+        message: "You are not authorized to mark this settlement as paid"
+      });
+    }
 
- 
-    const allDone = settlement.settlements.every(s => s.status === "completed");
-    settlement.settlementEnded = allDone;
+    // Mark settlement as paid
+    settlement.status = "paid";
+    settlement.updatedAt = new Date();
 
-    await settlement.save();
+    // If all settlements are paid, mark settlementEnded as true
+    const allPaid = settlementDoc.settlements.every(s => s.status === "paid");
+    if (allPaid) {
+      settlementDoc.settlementEnded = true;
+    }
 
-    res.status(200).json({ message: "Transaction marked as completed", settlement });
+    await settlementDoc.save();
+
+    res.status(200).json({
+      message: "Settlement marked as paid",
+      settlement,
+      settlementEnded: settlementDoc.settlementEnded
+    });
   } catch (err) {
-    console.error("❌ Error updating settlement:", err.message);
-    res.status(500).json({ message: "Failed to update settlement status." });
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -2,7 +2,7 @@ const Budget = require("../models/budgetSchema");
 
 // POST /budget/add
 exports.addBudget = async (req, res) => {
-  console.log("Yooooooo add")
+
   const { month, year, amount } = req.body;
 
   try {

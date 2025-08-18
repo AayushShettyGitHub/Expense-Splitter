@@ -395,7 +395,10 @@ const ViewGroup = () => {
             </Card>
           </TabsContent>
 
-         <TabsContent value="settlements">
+
+
+
+       <TabsContent value="settlements">
   <Card>
     <CardHeader>
       <CardTitle>Final Settlements</CardTitle>
@@ -406,19 +409,18 @@ const ViewGroup = () => {
           onClick={async () => {
             setLoadingSettlement(true);
             try {
-              // Trigger settlement calculation
               await axios.get(
                 `http://localhost:3000/auth/group/${group._id}/settlements`,
                 { withCredentials: true }
               );
-              // Fetch calculated settlements
+
               const newRes = await axios.get(
                 `http://localhost:3000/auth/settlements/${group._id}`,
                 { withCredentials: true }
               );
 
               if (newRes.data && newRes.data.settlements?.length > 0) {
-                setSettlements(newRes.data.settlements); // wrap into array to match rendering format
+                setSettlements(newRes.data.settlements);
                 setSettled(newRes.data.settlementEnded || false);
               } else {
                 toast({ title: "No settlements found" });
@@ -438,28 +440,77 @@ const ViewGroup = () => {
         </Button>
       )}
 
-      {/* Render settlements if available */}
-      {console.log(settlements)}
+      {/* Render settlements */}
       {settlements?.length > 0 && (
-  <div className="space-y-4">
-    {settlements.map((s, idx) => (
-      <div key={idx} className="border p-3 rounded-md bg-gray-50 shadow-sm">
-        <div className="text-sm">
-          <span className="text-red-600 font-medium">{s.fromName}</span> owes{" "}
-          <span className="text-green-600 font-medium">{s.toName}</span> ₹
-          {s.amount.toFixed(2)}
-        </div>
-        <div className="text-xs text-gray-500">
-          Status: {s.status || "pending"}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+        <div className="space-y-4">
+          {settlements.map((s, idx) => (
+            <div
+              key={idx}
+              className="border p-3 rounded-md bg-gray-50 shadow-sm flex justify-between items-center"
+            >
+              <div>
+                <div className="text-sm">
+                  <span className="text-red-600 font-medium">{s.fromName}</span>{" "}
+                  owes{" "}
+                  <span className="text-green-600 font-medium">{s.toName}</span>{" "}
+                  ₹{s.amount.toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Status: {s.status || "pending"}
+                </div>
+              </div>
 
+              {/* Show button only if current user is the receiver */}
+              {s.status !== "paid" && user?._id === s.to && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await axios.patch(
+                        `http://localhost:3000/auth/mark-paid/${group._id}/${s._id}`,
+                        {},
+                        { withCredentials: true }
+                      );
+
+                      if (res.data.settlements) {
+                        setSettlements(res.data.settlements);
+                        setSettled(res.data.settlementEnded || false);
+                      } else {
+                        setSettlements(prev =>
+                          prev.map(item =>
+                            item._id === s._id
+                              ? { ...item, status: "paid" }
+                              : item
+                          )
+                        );
+                      }
+
+                      if (res.data.settlementEnded) {
+                        toast({ title: "All settlements completed 🎉" });
+                      } else {
+                        toast({ title: "Marked as paid ✅" });
+                      }
+                    } catch (err) {
+                      toast({
+                        title: "Error marking settlement",
+                        description:
+                          err.response?.data?.message || err.message,
+                      });
+                    }
+                  }}
+                >
+                  Mark as Paid
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </CardContent>
   </Card>
 </TabsContent>
+
 
         </Tabs>
       </main>

@@ -1,9 +1,9 @@
 
 const express = require('express');
-const { registerUser,updateUser, loginUser, googleSignIn ,forgotPassword,resetPassword,verifyOtp,getCurrentUser} = require('../Controller/authController');
+const { registerUser,update, loginUser, googleSignIn ,forgotPassword,resetPassword,verifyOtp,getCurrentUser,logout} = require('../Controller/authController');
 const {protect} = require('../middleware/protect');
 const { addExpense,getExpenses } = require('../Controller/expenseController');
-const {addExpenseGroup,getExpensesByGroup ,getOptimizedSettlements,getSettlementsByGroup,markSettlements } = require('../Controller/splitController');
+const {addExpenseGroup,getExpensesByGroup ,getOptimizedSettlements,getSettlementsByGroup,markSettlementPaid } = require('../Controller/splitController');
 const {addBudget,getBudget,updateBudget,deleteBudget} = require('../Controller/budgetController');
 const { createGroup,getMyGroups ,acceptInvite,getGroupById,sendInvite,kickUser} = require('../Controller/groupController');
 const { handleAssistantQuery } = require('../services/gemini');
@@ -18,13 +18,14 @@ const router = express.Router();
 
 
 router.post('/register', registerUser);
-router.post('/update',protect, updateUser);
+router.put('/update',protect, update);
 router.post('/login', loginUser);
 router.post('/google', googleSignIn);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/verify-otp', verifyOtp);
 router.get('/getUser', protect, getCurrentUser);
+router.post('/logout', protect, logout);
 
 router.post('/expenses', protect, addExpense); 
 router.get('/getExpenses', protect, getExpenses);
@@ -49,7 +50,7 @@ router.post("/group/:id/expense", protect, addExpenseGroup);
 router.get("/group/:id/expenses",protect,getExpensesByGroup);
 router.get("/group/:groupId/settlements", getOptimizedSettlements);
 router.get('/settlements/:groupId', getSettlementsByGroup);
-router.post('/settlements-mark/:settlementId/:index',markSettlements);
+router.patch('/mark-paid/:groupId/:settlementId',protect,markSettlementPaid);
 
 router.post("/ask", protect, handleAssistantQuery)
 

@@ -2,11 +2,8 @@
 
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -30,6 +27,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+import axios from "axios"
+import { useNavigate } from "react-router-dom"
+
 export function NavUser({
   user,
 }: {
@@ -40,6 +40,20 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:3000/auth/logout", {}, { withCredentials: true })
+      navigate("/login") 
+    } catch (error) {
+      console.error("Logout failed:", error)
+    }
+  }
+
+  const handleProfile = () => {
+    navigate("/profile")
+  }
 
   return (
     <SidebarMenu>
@@ -79,30 +93,19 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfile}>
                 <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
+                Profile
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

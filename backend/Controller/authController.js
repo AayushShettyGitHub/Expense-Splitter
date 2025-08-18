@@ -116,66 +116,44 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-exports.updateUser = async (req, res) => {
-  const {
-    name,
-    email,
-    age,
-    profileImage,
-    description,
-    nationality,
-    address,
-    phone,
-    interest,
-    profession
-  } = req.body;
 
+
+exports.update = async (req, res) => {
   try {
-    const user = await User.findOne({ email });
+    const userId = req.userId; 
+    const updates = { ...req.body };
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (req.file) {
+      const result = await uploadImageToCloudinary(req.file.path);
+      updates.profileImage = result.secure_url;
     }
 
-    if (name) user.name = name;
-    if (age) user.age = age;
-    if (description) user.description = description;
-    if (nationality) user.nationality = nationality;
-    if (address) user.address = address;
-    if (phone) user.phone = phone;
-    if (interest) user.interest = interest;
-    if (profession) user.profession = profession;
+  
+    delete updates.password;
+    delete updates.resetOTP;
+    delete updates.resetOTPExpiry;
+    delete updates.email; 
 
-    if (profileImage) {
-      try {
-        const uploadedImageUrl = await uploadImageToCloudinary(profileImage);
-        user.profileImage = uploadedImageUrl;
-      } catch (error) {
-        return res.status(500).json({ message: 'Image upload failed', error: error.message });
-      }
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password -resetOTP -resetOTPExpiry");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
     }
-
-    await user.save();
 
     res.status(200).json({
-      message: 'User updated successfully',
-      user: {
-        name: user.name,
-        email: user.email,
-        age: user.age,
-        profileImage: user.profileImage,
-        description: user.description,
-        nationality: user.nationality,
-        address: user.address,
-        phone: user.phone,
-        interest: user.interest,
-        profession: user.profession,
-      },
+      message: "Profile updated successfully",
+      user: updatedUser,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update user', error: error.message });
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 exports.loginUser = async (req, res) => {
   console.log("Login route hit");
@@ -214,12 +192,19 @@ exports.loginUser = async (req, res) => {
 
 exports.logout = (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 0 });
+
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      sameSite: "strict",
+    
+    });
+
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 exports.getCurrentUser = async (req, res) => {
   try {

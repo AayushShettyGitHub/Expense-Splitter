@@ -40,11 +40,14 @@ const Assistant = () => {
     setResponse("");
 
     try {
+      // Hit LangChain backend endpoint instead of raw Gemini
       const { data: intentResponse } = await axios.post(
         "http://localhost:3000/auth/ask",
         { query },
         { withCredentials: true }
       );
+
+      // intentResponse will already be parsed JSON because JsonOutputParser in LangChain
       await handleIntent(intentResponse);
     } catch (error) {
       console.error("Error while fetching intent:", error);
@@ -61,7 +64,6 @@ const Assistant = () => {
           const month = normalizeMonth(data?.month);
           const year = parseInt(data?.year) || new Date().getFullYear();
           const category = data?.category?.toLowerCase() || "all";
-
           const monthNumber = getMonthNumber(month);
 
           if (!monthNumber || monthNumber < 1 || monthNumber > 12) {
@@ -107,65 +109,84 @@ const Assistant = () => {
         }
 
         case "set_budget": {
-  const { amount, month, year } = data;
+          const { amount, month, year } = data;
+          const normalizedMonth = normalizeMonth(month);
+          const numericYear = parseInt(year);
 
-  const normalizedMonth = normalizeMonth(month);
-  const numericYear = parseInt(year);
+          if (!normalizedMonth || !amount || !numericYear) {
+            setResponse("Missing or invalid budget details.");
+            toast({ title: "Missing or invalid budget details.", variant: "destructive" });
+            return;
+          }
 
-  if (!normalizedMonth || !amount || !numericYear) {
-    setResponse("Missing or invalid budget details.");
-    toast({ title: "Missing or invalid budget details.", variant: "destructive" });
+          try {
+            let budgetExists = false;
+            let budgetId = null;
+
+            try {
+              const res = await axios.get(
+                `http://localhost:3000/auth/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1}&year=${numericYear}`,
+                { withCredentials: true }
+              );
+              budgetExists = true;
+              budgetId = res.data._id;
+            } catch (err) {
+              if (err.response?.status !== 404) throw err;
+            }
+
+            if (budgetExists && budgetId) {
+              await axios.put(
+                `http://localhost:3000/auth/update/${budgetId}`,
+                { amount },
+                { withCredentials: true }
+              );
+              setResponse(`Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
+              toast({ title: `Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
+            } else {
+              await axios.post(
+                `http://localhost:3000/auth/add`,
+                {
+                  amount,
+                  month: new Date(`${normalizedMonth} 1`).getMonth() + 1,
+                  year: numericYear,
+                },
+                { withCredentials: true }
+              );
+              setResponse(`Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
+              toast({ title: `Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
+            }
+          } catch (err) {
+            console.error("Error setting budget:", err);
+            setResponse("Failed to set budget.");
+            toast({ title: "Failed to set budget.", variant: "destructive" });
+          }
+          return;
+        }
+
+        case "create_group": {
+  const { groupName, invitees } = data;
+
+  if (!groupName || !invitees || invitees.length === 0) {
+    setResponse("Missing group details. Please provide a group name and at least one member email.");
+    toast({ title: "Missing group details.", variant: "destructive" });
     return;
   }
 
   try {
-    let budgetExists = false;
-    let budgetId = null;
-
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/auth/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1}&year=${numericYear}`,
-        { withCredentials: true }
-      );
-      budgetExists = true;
-      budgetId = res.data._id;
-    } catch (err) {
-      if (err.response?.status !== 404) {
-        throw err; // true error
-      }
-      // If 404, we simply proceed to create
-    }
-
-    if (budgetExists && budgetId) {
-      await axios.put(
-        `http://localhost:3000/auth/update/${budgetId}`,
-        { amount },
-        { withCredentials: true }
-      );
-      setResponse(`Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
-      toast({ title: `Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
-    } else {
-      await axios.post(
-        `http://localhost:3000/auth/add`,
-        {
-          amount,
-          month: new Date(`${normalizedMonth} 1`).getMonth() + 1, // numeric month
-          year: numericYear,
-        },
-        { withCredentials: true }
-      );
-      setResponse(`Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.`);
-      toast({ title: `Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.` });
-    }
+    await axios.post(
+      "http://localhost:3000/auth/create",
+      { name: groupName, invitees },
+      { withCredentials: true }
+    );
+    setResponse(`Group "${groupName}" created with ${invitees.length} member(s).`);
+    toast({ title: `Group "${groupName}" created successfully!` });
   } catch (err) {
-    console.error("Error setting budget:", err);
-    setResponse("Failed to set budget.");
-    toast({ title: "Failed to set budget.", variant: "destructive" });
+    console.error("Error creating group:", err);
+    setResponse("Failed to create group.");
+    toast({ title: "Failed to create group.", variant: "destructive" });
   }
-
   return;
 }
-
 
         default:
           setResponse("Sorry, I couldn't understand your request.");

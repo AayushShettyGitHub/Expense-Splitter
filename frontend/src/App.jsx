@@ -10,6 +10,7 @@ import GroupPage from './WebComponents/Pages/GroupPage';
 import Groups from './WebComponents/Pages/Groups';
 import ViewGroupPage from './WebComponents/Pages/ViewGroupPage';
 import InvitePage from './WebComponents/Pages/InvitePage';
+import ProfilePage from './WebComponents/Pages/ProfilePage';
 
 import { Toaster } from '@/components/ui/toaster';
 import { ToastProviderWrapper } from '@/components/use-toast';
@@ -24,6 +25,7 @@ function App() {
         <SelectedGroupProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/homepage" element={<Homepage />} />
             <Route path="/manage" element={<AddExpense />} />
             <Route path="/view" element={<ViewExpPage />} />
