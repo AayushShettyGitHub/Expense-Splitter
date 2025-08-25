@@ -3,12 +3,12 @@ const mongoose = require("mongoose");
 const individualSettlementSchema = new mongoose.Schema({
   from: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "User", 
     required: true,
   },
   to: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "User", 
     required: true,
   },
   fromName: {
@@ -30,9 +30,9 @@ const individualSettlementSchema = new mongoose.Schema({
 
 const settlementSchema = new mongoose.Schema(
   {
-    group: {
+    event: {   
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Group",
+      ref: "Event", 
       required: true,
     },
     settlements: [individualSettlementSchema],

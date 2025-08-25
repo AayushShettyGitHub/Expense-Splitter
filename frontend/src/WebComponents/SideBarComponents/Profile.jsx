@@ -17,6 +17,7 @@ export default function Profile() {
     interest: "",
     profession: "",
   });
+  const [profileImage, setProfileImage] = useState(null);
 
   axios.defaults.withCredentials = true;
 
@@ -24,8 +25,7 @@ export default function Profile() {
     axios
       .get("http://localhost:3000/auth/getUser", { withCredentials: true })
       .then((res) => {
-        console.log("Fetched user:", res.data);
-        setUser(res.data); // ✅ API gives user object directly
+        setUser(res.data);
         setFormData({
           name: res.data.name || "",
           description: res.data.description || "",
@@ -43,14 +43,26 @@ export default function Profile() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleFileChange = (e) => {
+    setProfileImage(e.target.files[0]);
+  };
+
   const handleSave = () => {
+    const data = new FormData();
+    Object.keys(formData).forEach((key) => {
+      data.append(key, formData[key]);
+    });
+    if (profileImage) {
+      data.append("profileImage", profileImage);
+    }
+
     axios
-      .put("http://localhost:3000/auth/update", formData, {
+      .put("http://localhost:3000/auth/update", data, {
         withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
       })
       .then((res) => {
-        console.log("Updated user:", res.data);
-        setUser(res.data); // ✅ same fix here
+        setUser(res.data.user); // backend sends updated user inside { user: ... }
         setEditing(false);
       })
       .catch((err) => console.error("Error updating profile:", err));
@@ -67,13 +79,20 @@ export default function Profile() {
         <CardContent>
           {editing ? (
             <div className="space-y-4">
+              {user.profileImage && (
+                <img
+                  src={user.profileImage}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover mb-3"
+                />
+              )}
+              <div>
+                <Label>Upload Profile Image</Label>
+                <Input type="file" accept="image/*" onChange={handleFileChange} />
+              </div>
               <div>
                 <Label>Name</Label>
-                <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                />
+                <Input name="name" value={formData.name} onChange={handleChange} />
               </div>
               <div>
                 <Label>Description</Label>
@@ -131,7 +150,18 @@ export default function Profile() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 text-center">
+              {user.profileImage ? (
+                <img
+                  src={user.profileImage}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover mx-auto"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gray-200 mx-auto flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">No Image</span>
+                </div>
+              )}
               <p><span className="font-semibold">Name:</span> {user.name}</p>
               <p><span className="font-semibold">Email:</span> {user.email}</p>
               <p><span className="font-semibold">Description:</span> {user.description || "-"}</p>

@@ -1,6 +1,6 @@
 const Group = require("../models/groupSchema");
 const Split= require("../models/splitSchema");
-
+const Event = require("../models/Event");
 const {User} = require("../models/schema");
 
 exports.createGroup = async (req, res) => {
@@ -72,7 +72,6 @@ exports.getMyGroups = async (req, res) => {
 exports.getGroupById = async (req, res) => {
   try {
     const groupId = req.params.id;
-    console.log("Requested group ID:", groupId);
 
     const group = await Group.findById(groupId)
       .populate('admin', 'name')
@@ -83,20 +82,12 @@ exports.getGroupById = async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    const expenses = await Split.find({ group: groupId })
-      .populate({ path: 'paidBy', select: 'name' })
-      .populate({ path: 'splitBetween', select: 'name' })
-      .lean();
-
-    console.log("Expenses with populated fields:", JSON.stringify(expenses, null, 2));
-
-    group.expenses = expenses;
-
     res.status(200).json(group);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch group", error: err.message });
   }
 };
+
 
 
 
@@ -197,6 +188,69 @@ exports.kickUser = async (req, res) => {
     res.status(200).json({ message: "User removed from group", group });
   } catch (err) {
     console.error("Failed to remove user:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+
+exports.createEvent = async (req, res) => {
+  const { groupId } = req.params;
+  const { name, members, startDate, endDate } = req.body;
+
+  if (!name || !Array.isArray(members)) {
+    return res.status(400).json({ message: "Invalid input" });
+  }
+
+  try {
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    // Ensure all members exist
+    const eventMembers = await User.find({ _id: { $in: members } });
+    const eventMemberIds = eventMembers.map(user => user._id);
+
+    // Create the event
+    let event = new Event({
+      group: groupId,
+      name,
+      members: eventMemberIds,
+      startDate,
+      endDate
+    });
+
+    await event.save();
+
+    // Populate members before sending response
+    event = await Event.findById(event._id).populate("members", "name email");
+
+    res.status(201).json({ message: "Event created", event });
+  } catch (err) {
+    console.error("Event creation failed:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+// GET /group/:groupId/events
+exports.getEventsByGroup = async (req, res) => {
+  const { groupId } = req.params;
+
+  try {
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const events = await Event.find({ group: groupId })
+      .populate("members", "name email")
+      .lean();
+
+    res.status(200).json({ groupId, events });
+  } catch (err) {
+    console.error("Failed to fetch events:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

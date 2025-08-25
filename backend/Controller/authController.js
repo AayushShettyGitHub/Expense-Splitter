@@ -1,5 +1,5 @@
 require('dotenv').config();
-
+const streamifier = require("streamifier");
 const { sendResetEmail } = require('../config/sendMail');
 const { generateToken } = require('../config/utils');
 const { uploadImageToCloudinary } = require('./cloudinary');
@@ -120,19 +120,20 @@ exports.registerUser = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const userId = req.userId; 
+    const userId = req.userId;
     const updates = { ...req.body };
 
     if (req.file) {
-      const result = await uploadImageToCloudinary(req.file.path);
-      updates.profileImage = result.secure_url;
+      
+      const imageUrl = await uploadImageToCloudinary(req.file.buffer, "profile_images");
+      updates.profileImage = imageUrl;
     }
 
-  
+    // Prevent sensitive updates
     delete updates.password;
     delete updates.resetOTP;
     delete updates.resetOTPExpiry;
-    delete updates.email; 
+    delete updates.email;
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -153,6 +154,7 @@ exports.update = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 exports.loginUser = async (req, res) => {

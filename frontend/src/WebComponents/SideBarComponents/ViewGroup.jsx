@@ -1,214 +1,406 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useSelectedGroup } from "@/context/SelectedGroupContext";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const useCurrentUser = () => {
   const [user, setUser] = useState(null);
-
   useEffect(() => {
     axios
-      .get("http://localhost:3000/auth/getUser", {
-        withCredentials: true,
-      })
+      .get("http://localhost:3000/auth/getUser", { withCredentials: true })
       .then((res) => setUser(res.data))
-      .catch((err) => console.error("Error fetching current user", err));
+      .catch(console.error);
   }, []);
-
   return user;
 };
 
-const ViewGroup = () => {
-  const user = useCurrentUser();
-  const { selectedGroup: initialGroup, setSelectedGroup } = useSelectedGroup();
-  const [group, setGroup] = useState(null);
-  const [balances, setBalances] = useState({});
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [paidBy, setPaidBy] = useState("");
-  const [splitWith, setSplitWith] = useState([]);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [settlements, setSettlements] = useState([]);
-  const [settled, setSettled] = useState(false);
-  const [loadingSettlement, setLoadingSettlement] = useState(false);
+// ---------------- SelectedTripView ----------------
+const SelectedTripView = ({ trip, user, onBack, memberById }) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [tripExpenses, setTripExpenses] = useState([]);
+  const [tripBalances, setTripBalances] = useState({});
+  const [tripSettlements, setTripSettlements] = useState([]);
+  const [tripSettled, setTripSettled] = useState(false);
+  const [expenseDesc, setExpenseDesc] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expensePaidBy, setExpensePaidBy] = useState(trip.members[0]?._id || "");
+  const [expenseSplitWith, setExpenseSplitWith] = useState(trip.members.map(m => m._id));
+  const [loadingSettlement, setLoadingSettlement] = useState(false);
 
-  useEffect(() => {
-    if (!initialGroup?._id) {
-      navigate("/viewgroup");
-      return;
-    }
+  const idOf = (userOrId) => (typeof userOrId === "string" ? userOrId : userOrId?._id);
+  const nameOf = (idOrObj) =>
+    typeof idOrObj === "string"
+      ? trip.members.find((m) => m._id === idOrObj)?.name || memberById[idOrObj]?.name || "Unknown"
+      : idOrObj?.name || "Unknown";
 
-    const fetchGroupDetailsAndSettlements = async () => {
-      try {
-        const res = await axios.get(
-          `http://localhost:3000/auth/groups/${initialGroup._id}`,
-          { withCredentials: true }
-        );
-        const groupData = res.data;
-        setGroup(groupData);
-        setSelectedGroup(groupData);
-        calculateBalances(groupData.expenses || []);
-        setPaidBy(groupData.admin._id);
-        setSplitWith(groupData.members.map((m) => m._id));
-
-        const settlementRes = await axios.get(
-          `http://localhost:3000/auth/settlements/${groupData._id}`,
-          { withCredentials: true }
-        );
-        const sData = settlementRes.data;
-
-        console.log("🔁 Settlement Response:", sData.settlements);
-
-        if (sData.settlements?.length > 0) {
-          setSettlements(sData.settlements);
-          setSettled(sData.settlementEnded || false);
-        }
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setSettled(false);
-          setSettlements([]);
-        } else {
-          toast({
-            title: "Error loading data",
-            description: err.response?.data?.message || err.message,
-          });
-        }
-      }
-    };
-
-    fetchGroupDetailsAndSettlements();
-  }, []);
-
-  const calculateBalances = (expenses) => {
+  const calculateTripBalances = (expenses) => {
     const bal = {};
-    expenses.forEach((expense) => {
-      const payerId = expense.paidBy?._id;
-      const totalAmount = expense.amount;
-      const share = totalAmount / (expense.sharedWith?.length || 1);
-      expense.sharedWith?.forEach((member) => {
-        const memberId = member._id;
+    expenses.forEach((exp) => {
+      const payerId = idOf(exp.paidBy);
+      const split = Array.isArray(exp.splitBetween) ? exp.splitBetween : [];
+      const splitIds = split.map(idOf);
+      const share = exp.amount / (splitIds.length || 1);
+      splitIds.forEach((memberId) => {
         if (memberId === payerId) return;
         bal[payerId] = (bal[payerId] || 0) + share;
         bal[memberId] = (bal[memberId] || 0) - share;
       });
     });
-    setBalances(bal);
+    setTripBalances(bal);
   };
 
-  const handleCheckboxChange = (id) => {
-    setSplitWith((prev) =>
+  useEffect(() => {
+    const fetchExpensesAndSettlements = async () => {
+      try {
+        const expRes = await axios.get(
+          `http://localhost:3000/auth/event/${trip._id}/expenses`,
+          { withCredentials: true }
+        );
+        setTripExpenses(expRes.data || []);
+        calculateTripBalances(expRes.data || []);
+
+        const setRes = await axios.get(
+          `http://localhost:3000/auth/event/settlements/${trip._id}`,
+          { withCredentials: true }
+        );
+        setTripSettlements(setRes.data?.settlements || []);
+        setTripSettled(!!setRes.data?.settlementEnded);
+      } catch {
+        setTripExpenses([]);
+        setTripBalances({});
+        setTripSettlements([]);
+        setTripSettled(false);
+      }
+    };
+    fetchExpensesAndSettlements();
+  }, [trip]);
+
+  const handleTripCheckboxChange = (id) => {
+    setExpenseSplitWith((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   };
 
   const addExpense = async () => {
-    if (!description || !amount || !paidBy || splitWith.length === 0) {
-      toast({ title: "Please fill all fields" });
+    if (!expenseDesc || !expenseAmount || !expensePaidBy || expenseSplitWith.length === 0) {
+      toast({ title: "All expense fields are required" });
       return;
     }
     try {
       await axios.post(
-        `http://localhost:3000/auth/group/${group._id}/expense`,
+        `http://localhost:3000/auth/event/${trip._id}/expense`,
         {
-          amount: parseFloat(amount),
-          description,
-          paidBy,
-          splitBetween: splitWith,
+          amount: parseFloat(expenseAmount),
+          description: expenseDesc,
+          paidBy: expensePaidBy,
+          splitBetween: expenseSplitWith,
         },
         { withCredentials: true }
       );
+
       const updated = await axios.get(
-        `http://localhost:3000/auth/groups/${group._id}`,
+        `http://localhost:3000/auth/event/${trip._id}/expenses`,
         { withCredentials: true }
       );
-      setGroup(updated.data);
-      setSelectedGroup(updated.data);
-      calculateBalances(updated.data.expenses || []);
-      setAmount("");
-      setDescription("");
-      setSplitWith(updated.data.members.map((m) => m._id));
+      setTripExpenses(updated.data || []);
+      calculateTripBalances(updated.data || []);
+
+      setExpenseDesc("");
+      setExpenseAmount("");
+      setExpensePaidBy(trip.members[0]?._id || "");
+      setExpenseSplitWith(trip.members.map(m => m._id));
       toast({ title: "Expense added" });
     } catch (err) {
-      toast({
-        title: "Failed to add expense",
-        description: err.response?.data?.message || err.message,
-      });
+      toast({ title: "Failed to add expense", description: err.message });
     }
   };
 
-  const handleKick = async (memberId) => {
+  const settleTripExpenses = async () => {
+    setLoadingSettlement(true);
     try {
-      await axios.post(
-        `http://localhost:3000/auth/kick/${group._id}/${memberId}`,
-        {},
+      await axios.get(
+        `http://localhost:3000/auth/event/${trip._id}/settlements`,
         { withCredentials: true }
       );
-      const updatedGroup = await axios.get(
-        `http://localhost:3000/auth/groups/${group._id}`,
+      const res = await axios.get(
+        `http://localhost:3000/auth/event/settlements/${trip._id}`,
         { withCredentials: true }
       );
-      setGroup(updatedGroup.data);
-      setSelectedGroup(updatedGroup.data);
-      calculateBalances(updatedGroup.data.expenses || []);
+      setTripSettlements(res.data?.settlements || []);
+      setTripSettled(!!res.data?.settlementEnded);
+    } catch (err) {
+      toast({ title: "Error settling expenses", description: err.message });
+    } finally {
+      setLoadingSettlement(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Button onClick={onBack}>Back to Trips</Button>
+      <h2 className="text-xl font-semibold">{trip.name}</h2>
+      <Tabs defaultValue="members">
+        <TabsList className="mb-4 flex gap-2">
+          <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="addExpense">Add Expense</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="settlements">Settlements</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="members">
+          <Card>
+            <CardHeader>
+              <CardTitle>Members</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1 max-h-64 overflow-y-auto">
+              {trip.members.map((m) => (
+                <div key={m._id}>
+                  {m.name} {m.email ? `(${m.email})` : ""}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="addExpense">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Expense</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Input
+                placeholder="Description"
+                value={expenseDesc}
+                onChange={(e) => setExpenseDesc(e.target.value)}
+              />
+              <Input
+                placeholder="Amount"
+                type="number"
+                value={expenseAmount}
+                onChange={(e) => setExpenseAmount(e.target.value)}
+              />
+              <Select value={expensePaidBy} onValueChange={setExpensePaidBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Paid By" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trip.members.map((m) => (
+                    <SelectItem key={m._id} value={m._id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div>
+                <Label>Split With</Label>
+                <div className="flex flex-col max-h-32 overflow-y-auto">
+                  {trip.members.map((m) => (
+                    <div key={m._id} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={expenseSplitWith.includes(m._id)}
+                        onCheckedChange={() => handleTripCheckboxChange(m._id)}
+                      />
+                      <span>{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={addExpense}>Add Expense</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <Card className="max-h-64 overflow-y-auto">
+            <CardHeader>
+              <CardTitle>Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tripExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No expenses yet.</p>
+              ) : (
+                tripExpenses.map((exp) => (
+                  <div key={exp._id} className="p-2 border rounded mb-2">
+                    <div>
+                      <strong>{nameOf(exp.paidBy)}</strong> paid ₹{exp.amount}
+                    </div>
+                    <div>{exp.description}</div>
+                    <div>
+                      Split: {(exp.splitBetween || []).map((m) => nameOf(m)).join(", ")}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settlements">
+          <Card className="max-h-64 overflow-y-auto">
+            <CardHeader>
+              <CardTitle>Settlements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!tripSettled && tripSettlements.length === 0 && (
+                <Button onClick={settleTripExpenses} disabled={loadingSettlement}>
+                  {loadingSettlement ? "Processing..." : "Settle Expenses"}
+                </Button>
+              )}
+
+              {tripSettlements.map((s) => (
+                <div key={s._id} className="border p-2 mb-2 rounded flex justify-between items-center">
+                  <div>
+                    <span className="text-red-600">{s.fromName}</span> owes{" "}
+                    <span className="text-green-600">{s.toName}</span> ₹{Number(s.amount).toFixed(2)}
+                    <div className="text-xs text-gray-500">Status: {s.status || "pending"}</div>
+                  </div>
+                  {s.status !== "paid" && user?._id === s.to && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await axios.patch(
+                            `http://localhost:3000/auth/mark-paid/${trip._id}/${s._id}`,
+                            {},
+                            { withCredentials: true }
+                          );
+                          toast({ title: res.data?.settlementEnded ? "All settled 🎉" : "Marked as paid ✅" });
+                        } catch (err) {
+                          toast({ title: "Failed to mark paid", description: err.message });
+                        }
+                      }}
+                    >
+                      Mark as Paid
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+// ---------------- ViewGroup ----------------
+const ViewGroup = () => {
+  const user = useCurrentUser();
+  const { selectedGroup, setSelectedGroup } = useSelectedGroup();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [group, setGroup] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+
+  const [trips, setTrips] = useState([]);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [tripName, setTripName] = useState("");
+  const [tripMembersForCreate, setTripMembersForCreate] = useState([]);
+
+  const memberById = useMemo(
+    () => Object.fromEntries((groupMembers || []).map((m) => [m._id, m])),
+    [groupMembers]
+  );
+
+  const toMemberObj = (m) =>
+    typeof m === "string" ? memberById[m] || { _id: m, name: "Unknown", email: "" } : m;
+
+  const normalizeEvent = (evt) => ({
+    ...evt,
+    members: (evt.members || []).map(toMemberObj),
+  });
+
+  useEffect(() => {
+    if (!selectedGroup?._id) {
+      navigate("/viewgroup");
+      return;
+    }
+
+    const fetchAll = async () => {
+      try {
+        const gRes = await axios.get(`http://localhost:3000/auth/groups/${selectedGroup._id}`, { withCredentials: true });
+        setGroup(gRes.data);
+        setSelectedGroup(gRes.data);
+        setGroupMembers(gRes.data.members || []);
+
+        const eRes = await axios.get(`http://localhost:3000/auth/group/${selectedGroup._id}/events`, { withCredentials: true });
+        const events = Array.isArray(eRes.data?.events) ? eRes.data.events : [];
+        setTrips(events.map(normalizeEvent));
+      } catch (err) {
+        toast({ title: "Error loading group data", description: err.message });
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  const handleKickMember = async (memberId) => {
+    try {
+      await axios.post(`http://localhost:3000/auth/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
+      const updated = await axios.get(`http://localhost:3000/auth/groups/${group._id}`, { withCredentials: true });
+      setGroup(updated.data);
+      setGroupMembers(updated.data.members || []);
       toast({ title: "Member removed" });
     } catch (err) {
-      toast({
-        title: "Failed to remove member",
-        description: err.response?.data?.message || err.message,
-      });
+      toast({ title: "Failed to remove member", description: err.message });
     }
   };
 
-  const handleInvite = async () => {
+  const handleInviteMember = async () => {
     if (!inviteEmail) return;
     try {
-      await axios.post(
-        `http://localhost:3000/auth/send-invite/${group._id}`,
-        { email: inviteEmail },
-        { withCredentials: true }
-      );
-      const updatedGroup = await axios.get(
-        `http://localhost:3000/auth/groups/${group._id}`,
-        { withCredentials: true }
-      );
-      setGroup(updatedGroup.data);
-      setSelectedGroup(updatedGroup.data);
+      await axios.post(`http://localhost:3000/auth/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
+      const updated = await axios.get(`http://localhost:3000/auth/groups/${group._id}`, { withCredentials: true });
+      setGroup(updated.data);
+      setGroupMembers(updated.data.members || []);
       setInviteEmail("");
       toast({ title: "Invitation sent" });
     } catch (err) {
-      toast({
-        title: "Invite failed",
-        description: err.response?.data?.message || err.message,
-      });
+      toast({ title: "Invite failed", description: err.message });
     }
+  };
+
+  const toggleTripMemberForCreate = (memberId) => {
+    setTripMembersForCreate((prev) =>
+      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+    );
+  };
+
+  const createTrip = async () => {
+    if (!tripName || tripMembersForCreate.length === 0) {
+      toast({ title: "Trip name and members required" });
+      return;
+    }
+    try {
+      const res = await axios.post(
+        `http://localhost:3000/auth/group/${group._id}/event`,
+        { name: tripName, members: tripMembersForCreate },
+        { withCredentials: true }
+      );
+      const createdRaw = res.data?.event;
+      if (createdRaw) setTrips((prev) => [...prev, normalizeEvent(createdRaw)]);
+      setTripName("");
+      setTripMembersForCreate([]);
+      toast({ title: "Trip created" });
+    } catch (err) {
+      toast({ title: "Error creating trip", description: err.message });
+    }
+  };
+
+  const selectTrip = (trip) => {
+    setSelectedTrip(trip);
   };
 
   if (!group) return <p className="p-4">Loading...</p>;
@@ -216,301 +408,118 @@ const ViewGroup = () => {
   return (
     <div className="flex h-screen">
       <main className="flex-1 p-6 overflow-y-auto w-full">
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-4 flex flex-wrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="add">Add Expense</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="invite">Invite</TabsTrigger>
-            <TabsTrigger value="settlements">Settlements</TabsTrigger>
+        <Tabs defaultValue="groupMembers">
+          <TabsList className="mb-4 flex gap-2">
+            <TabsTrigger value="groupMembers">Group Members</TabsTrigger>
+            <TabsTrigger value="trips">Trips</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <Card>
-              <CardHeader>
-                <CardTitle>Balances</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Object.keys(balances).length === 0 ? (
-                  <p>No balances yet.</p>
-                ) : (
-                  Object.entries(balances).map(([id, bal]) => {
-                    const member = group.members.find((m) => m._id === id);
-                    return (
-                      <div key={id} className="text-sm">
-                        {member?.name}:{" "}
-                        <span className={bal >= 0 ? "text-green-600" : "text-red-600"}>
-                          ₹{bal.toFixed(2)}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="expenses">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Expenses</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-                {group.expenses?.length > 0 ? (
-                  group.expenses.map((expense, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 border rounded-md bg-gray-50 shadow-sm text-sm"
-                    >
-                      <div className="font-medium text-purple-700">
-                        💸 {expense.paidBy?.name} paid ₹{expense.amount}
-                      </div>
-                      <div className="text-gray-700">
-                        📄 Description: {expense.description}
-                      </div>
-                      <div className="text-gray-700">
-                        👥 Split between:{" "}
-                        {expense.splitBetween?.map((m) => m.name).join(", ")}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        🕒 {new Date(expense.createdAt).toLocaleString()}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No expenses yet.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="add">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Expense</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label>Description</Label>
-                  <Input
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter description"
-                  />
-                </div>
-                <div>
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                  />
-                </div>
-                <div>
-                  <Label>Paid By</Label>
-                  <Select value={paidBy} onValueChange={setPaidBy}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {group.members.map((m) => (
-                        <SelectItem key={m._id} value={m._id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Split Between</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.members.map((m) => (
-                      <div key={m._id} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={splitWith.includes(m._id)}
-                          onCheckedChange={() => handleCheckboxChange(m._id)}
-                        />
-                        <span>{m.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <Button onClick={addExpense}>Add Expense</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="members">
-            <Card>
-              <CardHeader>
-                <CardTitle>Group Members</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {group.members.map((member) => (
-                    <li
-                      key={member._id}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span>{member.name}</span>
-                      {group.admin._id === member._id ? (
-                        <span className="text-xs text-green-600">Admin</span>
-                      ) : member._id === user?._id ? (
-                        <span className="text-xs text-blue-600">You</span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleKick(member._id)}
-                        >
-                          Kick
-                        </Button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="invite">
-            <Card>
+          {/* Group Members Tab */}
+          <TabsContent value="groupMembers">
+            <Card className="mb-4">
               <CardHeader>
                 <CardTitle>Invite Member</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="Enter email"
-                  />
-                </div>
-                <Button onClick={handleInvite}>Send Invite</Button>
+              <CardContent className="flex gap-2">
+                <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Enter email" />
+                <Button onClick={handleInviteMember}>Send Invite</Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Members</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {groupMembers.map((m) => (
+                  <div key={m._id} className="flex justify-between items-center mb-2">
+                    <span>{m.name}</span>
+                    {m._id === group.admin?._id ? (
+                      <span className="text-green-600 text-xs">Admin</span>
+                    ) : m._id === user?._id ? (
+                      <span className="text-blue-600 text-xs">You</span>
+                    ) : (
+                      <Button size="sm" variant="destructive" onClick={() => handleKickMember(m._id)}>Kick</Button>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Trips Tab */}
+         <TabsContent value="trips">
+  {selectedTrip ? (
+    <SelectedTripView
+      trip={selectedTrip}
+      user={user}
+      onBack={() => setSelectedTrip(null)}
+      memberById={memberById}
+    />
+  ) : (
+    <Tabs defaultValue="createTrip" className="space-y-4">
+      <TabsList className="mb-2">
+        <TabsTrigger value="createTrip">Create Trip</TabsTrigger>
+        <TabsTrigger value="tripList">Trip List</TabsTrigger>
+      </TabsList>
 
-
-
-       <TabsContent value="settlements">
-  <Card>
-    <CardHeader>
-      <CardTitle>Final Settlements</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      {!settled && settlements.length === 0 && (
-        <Button
-          onClick={async () => {
-            setLoadingSettlement(true);
-            try {
-              await axios.get(
-                `http://localhost:3000/auth/group/${group._id}/settlements`,
-                { withCredentials: true }
-              );
-
-              const newRes = await axios.get(
-                `http://localhost:3000/auth/settlements/${group._id}`,
-                { withCredentials: true }
-              );
-
-              if (newRes.data && newRes.data.settlements?.length > 0) {
-                setSettlements(newRes.data.settlements);
-                setSettled(newRes.data.settlementEnded || false);
-              } else {
-                toast({ title: "No settlements found" });
-              }
-            } catch (err) {
-              toast({
-                title: "Settlement error",
-                description: err.response?.data?.message || err.message,
-              });
-            } finally {
-              setLoadingSettlement(false);
-            }
-          }}
-          disabled={loadingSettlement}
-        >
-          {loadingSettlement ? "Processing..." : "Settle Expenses"}
-        </Button>
-      )}
-
-      {/* Render settlements */}
-      {settlements?.length > 0 && (
-        <div className="space-y-4">
-          {settlements.map((s, idx) => (
-            <div
-              key={idx}
-              className="border p-3 rounded-md bg-gray-50 shadow-sm flex justify-between items-center"
-            >
-              <div>
-                <div className="text-sm">
-                  <span className="text-red-600 font-medium">{s.fromName}</span>{" "}
-                  owes{" "}
-                  <span className="text-green-600 font-medium">{s.toName}</span>{" "}
-                  ₹{s.amount.toFixed(2)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Status: {s.status || "pending"}
-                </div>
+      {/* --- Create Trip --- */}
+      <TabsContent value="createTrip">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Trip</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Input
+              placeholder="Trip Name"
+              value={tripName}
+              onChange={(e) => setTripName(e.target.value)}
+            />
+            <div>
+              <Label>Select Members</Label>
+              <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                {groupMembers.map((m) => (
+                  <div key={m._id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={tripMembersForCreate.includes(m._id)}
+                      onCheckedChange={() => toggleTripMemberForCreate(m._id)}
+                    />
+                    <span>{m.name}</span>
+                  </div>
+                ))}
               </div>
-
-              {/* Show button only if current user is the receiver */}
-              {s.status !== "paid" && user?._id === s.to && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const res = await axios.patch(
-                        `http://localhost:3000/auth/mark-paid/${group._id}/${s._id}`,
-                        {},
-                        { withCredentials: true }
-                      );
-
-                      if (res.data.settlements) {
-                        setSettlements(res.data.settlements);
-                        setSettled(res.data.settlementEnded || false);
-                      } else {
-                        setSettlements(prev =>
-                          prev.map(item =>
-                            item._id === s._id
-                              ? { ...item, status: "paid" }
-                              : item
-                          )
-                        );
-                      }
-
-                      if (res.data.settlementEnded) {
-                        toast({ title: "All settlements completed 🎉" });
-                      } else {
-                        toast({ title: "Marked as paid ✅" });
-                      }
-                    } catch (err) {
-                      toast({
-                        title: "Error marking settlement",
-                        description:
-                          err.response?.data?.message || err.message,
-                      });
-                    }
-                  }}
-                >
-                  Mark as Paid
-                </Button>
-              )}
             </div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+            <Button onClick={createTrip}>Create Trip</Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
+      {/* --- Trip List --- */}
+      <TabsContent value="tripList">
+        {trips.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No trips yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {trips.map((trip) => (
+              <Card
+                key={trip._id}
+                className="cursor-pointer"
+                onClick={() => selectTrip(trip)}
+              >
+                <CardHeader>
+                  <CardTitle>{trip.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  Members: {trip.members.map((m) => m.name).join(", ")}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  )}
+</TabsContent>
 
         </Tabs>
       </main>
