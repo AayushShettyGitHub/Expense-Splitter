@@ -36,6 +36,7 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, default: '', trim: true },
   interest: { type: String, default: '', trim: true },
   profession: { type: String, default: '', trim: true },
+   targetEvent: { type: mongoose.Schema.Types.ObjectId, ref: "Event", default: null },
   resetOTP: String,
   resetOTPExpiry: Date,
 }, { timestamps: true });
@@ -83,6 +84,9 @@ const ExpenseSchema = new mongoose.Schema({
     enum: ['Cash', 'UPI', 'Card', 'Netbanking', 'Other'],
     default: 'Cash',
   },
+
+
+
 }, { timestamps: true });
 
 

@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const CLIENT_ID= import.meta.env.VITE_GOOGLE_CLIENT_ID;;
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -26,13 +26,15 @@ export function Login() {
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // NEW STATE
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // NEW STATE
   const navigate = useNavigate();
   const googleBtnRef = useRef(null);
 
   useEffect(() => {
     if (window.google && googleBtnRef.current) {
       window.google.accounts.id.initialize({
-        client_id: CLIENT_ID, 
+        client_id: CLIENT_ID,
         callback: handleGoogleSuccess,
       });
 
@@ -56,7 +58,10 @@ export function Login() {
       return setError("Passwords do not match");
     }
     try {
-      const res = await axios.post("http://localhost:3000/auth/register", formData);
+      const res = await axios.post(
+        "http://localhost:3000/auth/register",
+        formData
+      );
       console.log("Signed up:", res.data);
       setIsSignUp(false);
       setFormData({ name: "", email: "", password: "" });
@@ -154,14 +159,23 @@ export function Login() {
               <Label htmlFor="password" className="text-indigo-700">
                 Password
               </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"} // TOGGLE TYPE
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute inset-y-0 right-3 text-sm text-indigo-600"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             {isSignUp && (
@@ -169,13 +183,22 @@ export function Login() {
                 <Label htmlFor="confirmPassword" className="text-indigo-700">
                   Confirm Password
                 </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"} // TOGGLE TYPE
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((p) => !p)}
+                    className="absolute inset-y-0 right-3 text-sm text-indigo-600"
+                  >
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
               </div>
             )}
 

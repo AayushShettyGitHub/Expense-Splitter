@@ -66,6 +66,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
           `http://localhost:3000/auth/event/${trip._id}/expenses`,
           { withCredentials: true }
         );
+        console.log("Fetched expenses:", expRes.data);
         setTripExpenses(expRes.data || []);
         calculateTripBalances(expRes.data || []);
 
@@ -221,29 +222,42 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
         </TabsContent>
 
         <TabsContent value="expenses">
-          <Card className="max-h-64 overflow-y-auto">
-            <CardHeader>
-              <CardTitle>Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tripExpenses.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No expenses yet.</p>
-              ) : (
-                tripExpenses.map((exp) => (
-                  <div key={exp._id} className="p-2 border rounded mb-2">
-                    <div>
-                      <strong>{nameOf(exp.paidBy)}</strong> paid ₹{exp.amount}
-                    </div>
-                    <div>{exp.description}</div>
-                    <div>
-                      Split: {(exp.splitBetween || []).map((m) => nameOf(m)).join(", ")}
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+  <Card className="max-h-64 overflow-y-auto">
+    <CardHeader>
+      <CardTitle>Expenses</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {console.log("The trip", tripExpenses)}
+      {tripExpenses.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No expenses yet.</p>
+      ) : (
+        tripExpenses.map((exp) => {
+          // helper fallback if nameOf isn't available in this scope
+          const getName = (idOrObj) =>
+            typeof idOrObj === "string"
+              ? trip.members.find((m) => m._id === idOrObj)?.name || memberById[idOrObj]?.name || "Unknown"
+              : idOrObj?.name || "Unknown";
+
+          const paidByName = getName(exp.paidBy);
+          const splitNames = (exp.splitBetween || []).map((m) => getName(m)).join(", ");
+
+          return (
+            <div key={exp._id} className="p-2 border rounded mb-2">
+              <div>
+                <strong>{paidByName}</strong> paid ₹{Number(exp.amount).toFixed(2)}
+              </div>
+              <div className="text-sm text-muted-foreground">{exp.description}</div>
+              <div className="text-xs text-gray-500">
+                Split: {splitNames || "—"}
+              </div>
+            </div>
+          );
+        })
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
         <TabsContent value="settlements">
           <Card className="max-h-64 overflow-y-auto">
@@ -270,11 +284,11 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
                       onClick={async () => {
                         try {
                           const res = await axios.patch(
-                            `http://localhost:3000/auth/mark-paid/${trip._id}/${s._id}`,
+                            `http://localhost:3000/auth/event/mark-paid/${trip._id}/${s._id}`,
                             {},
                             { withCredentials: true }
                           );
-                          toast({ title: res.data?.settlementEnded ? "All settled 🎉" : "Marked as paid ✅" });
+                          toast({ title: res.data?.settlementEnded ? "All settled" : "Marked as paid" });
                         } catch (err) {
                           toast({ title: "Failed to mark paid", description: err.message });
                         }
@@ -309,6 +323,8 @@ const ViewGroup = () => {
   const [tripName, setTripName] = useState("");
   const [tripMembersForCreate, setTripMembersForCreate] = useState([]);
 
+  const [activeTrips, setActiveTrips] = useState([]);
+
   const memberById = useMemo(
     () => Object.fromEntries((groupMembers || []).map((m) => [m._id, m])),
     [groupMembers]
@@ -338,6 +354,9 @@ const ViewGroup = () => {
         const eRes = await axios.get(`http://localhost:3000/auth/group/${selectedGroup._id}/events`, { withCredentials: true });
         const events = Array.isArray(eRes.data?.events) ? eRes.data.events : [];
         setTrips(events.map(normalizeEvent));
+
+        const aRes = await axios.get(`http://localhost:3000/auth/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
+        setActiveTrips(aRes.data.map((e) => e._id));
       } catch (err) {
         toast({ title: "Error loading group data", description: err.message });
       }
@@ -345,6 +364,29 @@ const ViewGroup = () => {
 
     fetchAll();
   }, []);
+
+  const toggleActiveTrip = async (tripId) => {
+    try {
+      if (activeTrips.includes(tripId)) {
+        await axios.delete(
+          `http://localhost:3000/auth/groups/${group._id}/events/${tripId}/active`,
+          { withCredentials: true }
+        );
+        setActiveTrips((prev) => prev.filter((id) => id !== tripId));
+        toast({ title: "Trip removed from active" });
+      } else {
+        await axios.post(
+          `http://localhost:3000/auth/groups/${group._id}/events/${tripId}/active`,
+          {},
+          { withCredentials: true }
+        );
+        setActiveTrips((prev) => [...prev, tripId]);
+        toast({ title: "Trip set as active" });
+      }
+    } catch (err) {
+      toast({ title: "Failed to update active trips", description: err.message });
+    }
+  };
 
   const handleKickMember = async (memberId) => {
     try {
@@ -434,12 +476,16 @@ const ViewGroup = () => {
                 {groupMembers.map((m) => (
                   <div key={m._id} className="flex justify-between items-center mb-2">
                     <span>{m.name}</span>
-                    {m._id === group.admin?._id ? (
-                      <span className="text-green-600 text-xs">Admin</span>
-                    ) : m._id === user?._id ? (
-                      <span className="text-blue-600 text-xs">You</span>
+                                        {m._id === group.admin?._id ? (
+                      <span className="text-green-600 text-sm">Admin</span>
                     ) : (
-                      <Button size="sm" variant="destructive" onClick={() => handleKickMember(m._id)}>Kick</Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleKickMember(m._id)}
+                      >
+                        Remove
+                      </Button>
                     )}
                   </div>
                 ))}
@@ -448,79 +494,107 @@ const ViewGroup = () => {
           </TabsContent>
 
           {/* Trips Tab */}
-         <TabsContent value="trips">
-  {selectedTrip ? (
-    <SelectedTripView
-      trip={selectedTrip}
-      user={user}
-      onBack={() => setSelectedTrip(null)}
-      memberById={memberById}
-    />
-  ) : (
-    <Tabs defaultValue="createTrip" className="space-y-4">
-      <TabsList className="mb-2">
-        <TabsTrigger value="createTrip">Create Trip</TabsTrigger>
-        <TabsTrigger value="tripList">Trip List</TabsTrigger>
-      </TabsList>
+          <TabsContent value="trips">
+            {!selectedTrip ? (
+              <div className="space-y-6">
+                {/* Active Trips Section */}
+                {activeTrips.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Active Trips</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {trips
+                        .filter((t) => activeTrips.includes(t._id))
+                        .map((t) => (
+                          <div
+                            key={t._id}
+                            className="flex justify-between items-center border rounded p-2 cursor-pointer hover:bg-gray-50"
+                            onClick={() => selectTrip(t)}
+                          >
+                            <span>{t.name}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleActiveTrip(t._id);
+                              }}
+                            >
+                              Remove Active
+                            </Button>
+                          </div>
+                        ))}
+                    </CardContent>
+                  </Card>
+                )}
 
-      {/* --- Create Trip --- */}
-      <TabsContent value="createTrip">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Trip</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Input
-              placeholder="Trip Name"
-              value={tripName}
-              onChange={(e) => setTripName(e.target.value)}
-            />
-            <div>
-              <Label>Select Members</Label>
-              <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                {groupMembers.map((m) => (
-                  <div key={m._id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={tripMembersForCreate.includes(m._id)}
-                      onCheckedChange={() => toggleTripMemberForCreate(m._id)}
+                {/* All Trips Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All Trips</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {trips.map((t) => (
+                      <div
+                        key={t._id}
+                        className="flex justify-between items-center border rounded p-2 cursor-pointer hover:bg-gray-50"
+                        onClick={() => selectTrip(t)}
+                      >
+                        <span>{t.name}</span>
+                        <Button
+                          size="sm"
+                          variant={activeTrips.includes(t._id) ? "secondary" : "outline"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActiveTrip(t._id);
+                          }}
+                        >
+                          {activeTrips.includes(t._id) ? "Active" : "Set Active"}
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Create Trip Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Create New Trip</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Input
+                      placeholder="Trip Name"
+                      value={tripName}
+                      onChange={(e) => setTripName(e.target.value)}
                     />
-                    <span>{m.name}</span>
-                  </div>
-                ))}
+                    <div>
+                      <Label>Select Members</Label>
+                      <div className="flex flex-col max-h-32 overflow-y-auto border rounded p-2">
+                        {groupMembers.map((m) => (
+                          <div key={m._id} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={tripMembersForCreate.includes(m._id)}
+                              onCheckedChange={() => toggleTripMemberForCreate(m._id)}
+                            />
+                            <span>{m.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <Button onClick={createTrip}>Create Trip</Button>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-            <Button onClick={createTrip}>Create Trip</Button>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      {/* --- Trip List --- */}
-      <TabsContent value="tripList">
-        {trips.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No trips yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {trips.map((trip) => (
-              <Card
-                key={trip._id}
-                className="cursor-pointer"
-                onClick={() => selectTrip(trip)}
-              >
-                <CardHeader>
-                  <CardTitle>{trip.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  Members: {trip.members.map((m) => m.name).join(", ")}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
-  )}
-</TabsContent>
-
+            ) : (
+              <SelectedTripView
+                trip={selectedTrip}
+                user={user}
+                memberById={memberById}
+                onBack={() => setSelectedTrip(null)}
+              />
+            )}
+          </TabsContent>
         </Tabs>
       </main>
     </div>
@@ -528,3 +602,4 @@ const ViewGroup = () => {
 };
 
 export default ViewGroup;
+

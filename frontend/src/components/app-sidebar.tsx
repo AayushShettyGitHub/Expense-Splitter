@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -26,11 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+ 
   navMain: [
     {
       title: "Dashboard",
@@ -52,8 +47,7 @@ const data = {
       icon: PieChart,
       items: [
         { title: "Set Budget", url: "/budget" },
-        { title: "Budget Overview", url: "/budget" },
-      ],
+      ]
     },
     {
       title: "Groups",
@@ -75,23 +69,12 @@ const data = {
       icon: Bot,
     },
     {
-      title: "Settings",
-      url: "/settings",
+      title: "Your Active Events",
+      url: "/active-events",
       icon: Settings2,
     },
   ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "/support",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "/feedback",
-      icon: Send,
-    },
-  ],
+  
   projects: [],
 };
 
@@ -112,8 +95,8 @@ export function AppSidebar({ ...props }) {
                   <Command className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">ExpenseSplit</span>
-                  <span className="truncate text-xs">Dashboard</span>
+                  <span className="truncate font-semibold">Splitly</span>
+                  
                 </div>
               </button>
             </SidebarMenuButton>
@@ -123,11 +106,10 @@ export function AppSidebar({ ...props }) {
 
       <SidebarContent>
         <NavMain items={data.navMain} navigate={navigate} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" navigate={navigate} />
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );

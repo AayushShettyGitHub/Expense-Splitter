@@ -21,9 +21,10 @@ Supported intent types:
 - "add_expense" — When the user wants to add a new expense with details like amount, category, date, description, or payment mode.
 - "set_budget" — When the user wants to set or update a monthly budget.
 - "create_group" — When the user wants to create a group with a name and invitees (emails or names if provided).
+- "add_expense_to_event" — When the user wants to add an expense to a specific event or trip.
 - "unknown_query" — When you can't understand the user's intent.
 
-🧠 ALWAYS respond with a raw JSON (no markdown, no explanations).
+ALWAYS respond with a raw JSON (no markdown, no explanations).
 
 Example 1:
 User: What did I spend in June 2025?
@@ -45,7 +46,22 @@ User: Create a group called Goa Trip with members aayush@gmail.com, priya@gmail.
 Response:
 {{"intent": "create_group", "data": {{ "groupName": "Goa Trip", "invitees": ["aayush@gmail.com", "priya@gmail.com"] }} }}
 
-Example 5:
+Example 5
+User: Add 500 for dinner in the trip.
+Response:
+{{
+  "intent": "add_expense_to_event",
+  "data": {{
+    "description": "Dinner",
+    "amount": 500,
+    "paidBy": "current_user",
+    "splitBetween": "all_members",
+    "date": "today"
+}}
+}}
+
+
+Example 6:
 User: Tell me something cool
 Response:
 {{"intent": "unknown_query", "data": {{}} }}

@@ -254,3 +254,148 @@ exports.getEventsByGroup = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+
+exports.setActiveEvent = async (req, res) => {
+  try {
+    console.log("setActiveEvent called");
+    const { groupId, eventId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+
+    // Check if logged-in user is group admin
+    console.log("Group admin ID:", group.admin.toString());
+    console.log("Logged-in user ID:", req.userId);
+    if (group.admin.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: "Only the group admin can set active events" });
+    }
+
+    // Set active event
+    if (!group.activeEvents.includes(eventId)) {
+      group.activeEvents.push(eventId);
+      await group.save();
+    }
+
+    console.log("Active events updated:", group.activeEvents);
+
+    res.json({
+      message: "Event set as active",
+      activeEvents: group.activeEvents
+    });
+
+  } catch (error) {
+    console.error("Error in setActiveEvent:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+exports.removeActiveEvent = async (req, res) => {
+  try {
+    const { groupId, eventId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (group.admin.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: "Only the group admin can set active events" });
+    }
+
+    group.activeEvents = group.activeEvents.filter(id => id.toString() !== eventId);
+    await group.save();
+
+    res.json({ message: "Event removed from active", activeEvents: group.activeEvents });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getActiveEvents = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId).populate("activeEvents");
+    if (!group) return res.status(404).json({ message: "Group not found" });
+
+    res.json(group.activeEvents);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// controller
+exports.getUserActiveEvents = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Step 1: Find all groups user belongs to and include their activeEvents
+    const groups = await Group.find({ members: userId })
+      .select("name activeEvents")
+      .populate("activeEvents", "name group"); // get event name and group id
+
+    if (!groups.length) {
+      return res.status(200).json([]);
+    }
+
+    // Step 2: Flatten events with their group name
+    const activeEvents = [];
+    groups.forEach((group) => {
+      group.activeEvents.forEach((event) => {
+        activeEvents.push({
+          _id: event._id,
+          name: event.name,
+          group: { _id: group._id, name: group.name },
+        });
+      });
+    });
+
+    res.status(200).json(activeEvents);
+  } catch (err) {
+    res.status(500).json({
+      error: "Failed to fetch active events",
+      details: err.message,
+    });
+  }
+};
+
+exports.setTargetEvent = async (req, res) => {
+  try {
+    const userId = req.userId; // populated by protect middleware
+    const { eventId } = req.params;
+
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch event to get grpId
+    const event = await Event.findById(eventId).select("group");
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Toggle targetEvent
+    if (user.targetEvent?.toString() === eventId) {
+      user.targetEvent = null;
+    } else {
+      user.targetEvent = eventId;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: user.targetEvent ? "Target event set" : "Target event unset",
+      targetEvent: user.targetEvent,
+      grpId: user.targetEvent ? event.group : null, 
+    });
+  } catch (err) {
+    console.error("Error setting target event:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

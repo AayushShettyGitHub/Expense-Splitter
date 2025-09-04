@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { Login } from './WebComponents/AuthComponents/Login';
 import Homepage from './WebComponents/Pages/Homepage';
@@ -11,32 +11,48 @@ import Groups from './WebComponents/Pages/Groups';
 import ViewGroupPage from './WebComponents/Pages/ViewGroupPage';
 import InvitePage from './WebComponents/Pages/InvitePage';
 import ProfilePage from './WebComponents/Pages/ProfilePage';
-
+import ActiveEventPage from './WebComponents/Pages/ActiveEventPage';
 import { Toaster } from '@/components/ui/toaster';
 import { ToastProviderWrapper } from '@/components/use-toast';
 import { SelectedGroupProvider } from './context/SelectedGroupContext';
 import AssistantPage from './WebComponents/Pages/AssistantPage';
+import AssistantWidget from './WebComponents/SideBarComponents/AssistantWidget';
 
+function Layout() {
+  const location = useLocation();
+
+  const hideAssistantOn = ["/login","/assistant"];
+
+  return (
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/homepage" element={<Homepage />} />
+        <Route path="/manage" element={<AddExpense />} />
+        <Route path="/view" element={<ViewExpPage />} />
+        <Route path="/budget" element={<BudgetPage />} />
+        <Route path="/group" element={<GroupPage />} />
+        <Route path="/viewgroup" element={<Groups />} />
+        <Route path="/groupview" element={<ViewGroupPage />} />
+        <Route path="/invites" element={<InvitePage />} />
+        <Route path="/assistant" element={<AssistantPage />} />
+        <Route path="/active-events" element={<ActiveEventPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+
+      {/* Only show assistant if not on excluded paths */}
+      {!hideAssistantOn.includes(location.pathname) && <AssistantWidget />}
+    </>
+  );
+}
 
 function App() {
   return (
     <ToastProviderWrapper>
       <Router>
         <SelectedGroupProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/homepage" element={<Homepage />} />
-            <Route path="/manage" element={<AddExpense />} />
-            <Route path="/view" element={<ViewExpPage />} />
-            <Route path="/budget" element={<BudgetPage />} />
-            <Route path="/group" element={<GroupPage />} />
-            <Route path="/viewgroup" element={<Groups />} />
-            <Route path="/groupview" element={<ViewGroupPage />} />
-            <Route path="/invites" element={<InvitePage />} />
-            <Route path="/assistant" element={<AssistantPage />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
+          <Layout />
         </SelectedGroupProvider>
       </Router>
       <Toaster />

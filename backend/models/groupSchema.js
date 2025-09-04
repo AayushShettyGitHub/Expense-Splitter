@@ -6,6 +6,7 @@ const groupSchema = new mongoose.Schema({
   admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   pendingInvites: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+   activeEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event", default: [] }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Group", groupSchema);

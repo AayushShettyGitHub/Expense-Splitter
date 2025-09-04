@@ -34,6 +34,20 @@ exports.addExpenseEvent = async (req, res) => {
   }
 };
 
+exports.getEventById = async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    res.status(200).json(event);
+  } catch (err) {
+    console.error("Error fetching event:", err);
+    res.status(500).json({ message: "Failed to fetch event", error: err.message });
+  }
+};
+
 // GET /event/:eventId/expenses
 exports.getExpensesByEvent = async (req, res) => {
   const { eventId } = req.params;
@@ -181,21 +195,30 @@ exports.getSettlementsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    const settlements = await Settlement.find({ event: eventId }).sort({ createdAt: -1 });
-
-    if (!settlements || settlements.length === 0) {
-      return res.status(404).json({ message: "No settlements found for this event." });
+    // Make sure event exists; 404 if it doesn't
+    const event = await Event.findById(eventId).select("_id");
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    const latest = settlements[0];
+    // Fetch settlement docs for this event (most recent first)
+    const settlements = await Settlement.find({ event: eventId }).sort({ createdAt: -1 }).lean();
 
-    res.status(200).json({
-      settlements: latest.settlements,
-      settlementEnded: latest.settlementEnded,
+    // If none, return 200 with an empty settlements array and settlementEnded=false
+    if (!settlements || settlements.length === 0) {
+      return res.status(200).json({ settlements: [], settlementEnded: false });
+    }
+
+    // Otherwise return the latest settlement record (defensive defaults)
+    const latest = settlements[0] || {};
+    return res.status(200).json({
+      settlements: Array.isArray(latest.settlements) ? latest.settlements : [],
+      settlementEnded: !!latest.settlementEnded,
     });
   } catch (err) {
-    console.error("Error fetching settlements:", err.message);
-    res.status(500).json({ message: "Failed to fetch settlements." });
+    console.error("Error fetching settlements:", err);
+    return res.status(500).json({ message: "Failed to fetch settlements." });
   }
 };
+
 
