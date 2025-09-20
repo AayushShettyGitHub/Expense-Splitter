@@ -42,7 +42,7 @@ const CreateGroup = () => {
     setLoading(true);
     try {
       await axios.post(
-        "https://split-backend-263e.onrender.com/api/create",
+        "https://split-backend-drcy.onrender.com/api/create",
         { name: groupName, invitees },
         { withCredentials: true }
       );

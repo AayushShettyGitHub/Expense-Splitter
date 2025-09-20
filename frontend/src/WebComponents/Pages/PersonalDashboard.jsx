@@ -40,8 +40,8 @@ const PersonalDashboard = () => {
   const fetchData = async () => {
     try {
       const [budgetRes, expenseRes] = await Promise.all([
-        axios.get(`https://split-backend-263e.onrender.com/api/get?month=${month}&year=${year}`, { withCredentials: true }),
-        axios.get(`https://split-backend-263e.onrender.com/api/getExpenses?month=${month}&year=${year}`, { withCredentials: true }),
+        axios.get(`https://split-backend-drcy.onrender.com/api/get?month=${month}&year=${year}`, { withCredentials: true }),
+        axios.get(`https://split-backend-drcy.onrender.com/api/getExpenses?month=${month}&year=${year}`, { withCredentials: true }),
       ]);
 
       setBudget(budgetRes.data);

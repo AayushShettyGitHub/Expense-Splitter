@@ -13,7 +13,7 @@ const ActiveEvent = ({ onTargetSelect }) => {
     const fetchActiveEvents = async () => {
       try {
         const res = await axios.get(
-          "https://split-backend-263e.onrender.com/api/user/active-events",
+          "https://split-backend-drcy.onrender.com/api/user/active-events",
           { withCredentials: true }
         );
         setEvents(res.data);
@@ -33,7 +33,7 @@ const ActiveEvent = ({ onTargetSelect }) => {
   const handleSelectTarget = async (event) => {
     try {
       const res = await axios.patch(
-        `https://split-backend-263e.onrender.com/api/target/${event._id}`,
+        `https://split-backend-drcy.onrender.com/api/target/${event._id}`,
         {},
         { withCredentials: true }
       );

@@ -24,7 +24,7 @@ const AddExpenseForm = () => {
 
     try {
       await axios.post(
-        "https://split-backend-263e.onrender.com/api/expenses",
+        "https://split-backend-drcy.onrender.com/api/expenses",
         { ...form },
         { withCredentials: true }
       );
