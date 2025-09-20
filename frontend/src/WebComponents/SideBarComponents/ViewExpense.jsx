@@ -27,7 +27,7 @@ const ViewExpense = () => {
       }
 
       const res = await axios.get(
-        `https://split-backend-drcy.onrender.com/api/getExpenses?${queryParams.toString()}`,
+        `https://split-backend-02lh.onrender.com/api/getExpenses?${queryParams.toString()}`,
         { withCredentials: true }
       );
 

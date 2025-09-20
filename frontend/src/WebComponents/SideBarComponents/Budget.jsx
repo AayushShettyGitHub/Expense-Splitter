@@ -38,7 +38,7 @@ const Budget = () => {
   const fetchBudget = async () => {
     try {
       const res = await axios.get(
-        `https://split-backend-drcy.onrender.com/api/get?month=${month}&year=${year}`,
+        `https://split-backend-02lh.onrender.com/api/get?month=${month}&year=${year}`,
         { withCredentials: true }
       );
       setBudget(res.data);
@@ -52,7 +52,7 @@ const Budget = () => {
   const fetchExpenses = async () => {
     try {
       const res = await axios.get(
-        `https://split-backend-drcy.onrender.com/api/getExpenses?month=${month}&year=${year}`,
+        `https://split-backend-02lh.onrender.com/api/getExpenses?month=${month}&year=${year}`,
         { withCredentials: true }
       );
       const total = res.data.reduce((acc, e) => acc + e.amount, 0);
@@ -71,13 +71,13 @@ const Budget = () => {
     try {
       if (budget) {
         await axios.put(
-          `https://split-backend-drcy.onrender.com/api/update/${budget._id}`,
+          `https://split-backend-02lh.onrender.com/api/update/${budget._id}`,
           { amount },
           { withCredentials: true }
         );
       } else {
         await axios.post(
-          "https://split-backend-drcy.onrender.com/api/add",
+          "https://split-backend-02lh.onrender.com/api/add",
           { amount, month, year },
           { withCredentials: true }
         );
@@ -91,7 +91,7 @@ const Budget = () => {
   const handleDelete = async () => {
     try {
       await axios.delete(
-        `https://split-backend-drcy.onrender.com/api/delete/${budget._id}`,
+        `https://split-backend-02lh.onrender.com/api/delete/${budget._id}`,
         { withCredentials: true }
       );
       setBudget(null);

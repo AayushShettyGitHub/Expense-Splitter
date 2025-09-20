@@ -17,7 +17,7 @@ const useCurrentUser = () => {
   const [user, setUser] = useState(null);
   useEffect(() => {
     axios
-      .get("https://split-backend-drcy.onrender.com/api/getUser", { withCredentials: true })
+      .get("https://split-backend-02lh.onrender.com/api/getUser", { withCredentials: true })
       .then((res) => setUser(res.data))
       .catch(console.error);
   }, []);
@@ -63,7 +63,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     const fetchExpensesAndSettlements = async () => {
       try {
         const expRes = await axios.get(
-          `https://split-backend-drcy.onrender.com/api/event/${trip._id}/expenses`,
+          `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expenses`,
           { withCredentials: true }
         );
         console.log("Fetched expenses:", expRes.data);
@@ -71,7 +71,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
         calculateTripBalances(expRes.data || []);
 
         const setRes = await axios.get(
-          `https://split-backend-drcy.onrender.com/api/event/settlements/${trip._id}`,
+          `https://split-backend-02lh.onrender.com/api/event/settlements/${trip._id}`,
           { withCredentials: true }
         );
         setTripSettlements(setRes.data?.settlements || []);
@@ -99,7 +99,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     }
     try {
       await axios.post(
-        `https://split-backend-drcy.onrender.com/api/event/${trip._id}/expense`,
+        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expense`,
         {
           amount: parseFloat(expenseAmount),
           description: expenseDesc,
@@ -110,7 +110,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
       );
 
       const updated = await axios.get(
-        `https://split-backend-drcy.onrender.com/api/event/${trip._id}/expenses`,
+        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expenses`,
         { withCredentials: true }
       );
       setTripExpenses(updated.data || []);
@@ -130,11 +130,11 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     setLoadingSettlement(true);
     try {
       await axios.get(
-        `https://split-backend-drcy.onrender.com/api/event/${trip._id}/settlements`,
+        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/settlements`,
         { withCredentials: true }
       );
       const res = await axios.get(
-        `https://split-backend-drcy.onrender.com/api/event/settlements/${trip._id}`,
+        `https://split-backend-02lh.onrender.com/api/event/settlements/${trip._id}`,
         { withCredentials: true }
       );
       setTripSettlements(res.data?.settlements || []);
@@ -284,7 +284,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
                       onClick={async () => {
                         try {
                           const res = await axios.patch(
-                            `https://split-backend-drcy.onrender.com/api/event/mark-paid/${trip._id}/${s._id}`,
+                            `https://split-backend-02lh.onrender.com/api/event/mark-paid/${trip._id}/${s._id}`,
                             {},
                             { withCredentials: true }
                           );
@@ -346,16 +346,16 @@ const ViewGroup = () => {
 
     const fetchAll = async () => {
       try {
-        const gRes = await axios.get(`https://split-backend-drcy.onrender.com/api/groups/${selectedGroup._id}`, { withCredentials: true });
+        const gRes = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${selectedGroup._id}`, { withCredentials: true });
         setGroup(gRes.data);
         setSelectedGroup(gRes.data);
         setGroupMembers(gRes.data.members || []);
 
-        const eRes = await axios.get(`https://split-backend-drcy.onrender.com/api/group/${selectedGroup._id}/events`, { withCredentials: true });
+        const eRes = await axios.get(`https://split-backend-02lh.onrender.com/api/group/${selectedGroup._id}/events`, { withCredentials: true });
         const events = Array.isArray(eRes.data?.events) ? eRes.data.events : [];
         setTrips(events.map(normalizeEvent));
 
-        const aRes = await axios.get(`https://split-backend-drcy.onrender.com/api/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
+        const aRes = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
         setActiveTrips(aRes.data.map((e) => e._id));
       } catch (err) {
         toast({ title: "Error loading group data", description: err.message });
@@ -369,14 +369,14 @@ const ViewGroup = () => {
     try {
       if (activeTrips.includes(tripId)) {
         await axios.delete(
-          `https://split-backend-drcy.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
+          `https://split-backend-02lh.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
           { withCredentials: true }
         );
         setActiveTrips((prev) => prev.filter((id) => id !== tripId));
         toast({ title: "Trip removed from active" });
       } else {
         await axios.post(
-          `https://split-backend-drcy.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
+          `https://split-backend-02lh.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
           {},
           { withCredentials: true }
         );
@@ -390,8 +390,8 @@ const ViewGroup = () => {
 
   const handleKickMember = async (memberId) => {
     try {
-      await axios.post(`https://split-backend-drcy.onrender.com/api/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
-      const updated = await axios.get(`https://split-backend-drcy.onrender.com/api/groups/${group._id}`, { withCredentials: true });
+      await axios.post(`https://split-backend-02lh.onrender.com/api/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
+      const updated = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${group._id}`, { withCredentials: true });
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       toast({ title: "Member removed" });
@@ -403,8 +403,8 @@ const ViewGroup = () => {
   const handleInviteMember = async () => {
     if (!inviteEmail) return;
     try {
-      await axios.post(`https://split-backend-drcy.onrender.com/api/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
-      const updated = await axios.get(`https://split-backend-drcy.onrender.com/api/groups/${group._id}`, { withCredentials: true });
+      await axios.post(`https://split-backend-02lh.onrender.com/api/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
+      const updated = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${group._id}`, { withCredentials: true });
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       setInviteEmail("");
@@ -427,7 +427,7 @@ const ViewGroup = () => {
     }
     try {
       const res = await axios.post(
-        `https://split-backend-drcy.onrender.com/api/group/${group._id}/event`,
+        `https://split-backend-02lh.onrender.com/api/group/${group._id}/event`,
         { name: tripName, members: tripMembersForCreate },
         { withCredentials: true }
       );

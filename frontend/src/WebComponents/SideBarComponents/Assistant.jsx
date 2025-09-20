@@ -64,7 +64,7 @@ const Assistant = () => {
 
     try {
       const { data: intentResponse } = await axios.post(
-        "https://split-backend-drcy.onrender.com/api/ask",
+        "https://split-backend-02lh.onrender.com/api/ask",
         { query },
         { withCredentials: true }
       );
@@ -128,7 +128,7 @@ const Assistant = () => {
           };
 
           try {
-            await axios.post("https://split-backend-drcy.onrender.com/api/expenses", expensePayload, {
+            await axios.post("https://split-backend-02lh.onrender.com/api/expenses", expensePayload, {
               withCredentials: true,
             });
             toast({ title: "Expense added successfully." });
@@ -161,7 +161,7 @@ const Assistant = () => {
 
             try {
               const res = await axios.get(
-                `https://split-backend-drcy.onrender.com/api/get?month=${
+                `https://split-backend-02lh.onrender.com/api/get?month=${
                   new Date(`${normalizedMonth} 1`).getMonth() + 1
                 }&year=${numericYear}`,
                 { withCredentials: true }
@@ -174,7 +174,7 @@ const Assistant = () => {
 
             if (budgetExists && budgetId) {
               await axios.put(
-                `https://split-backend-drcy.onrender.com/api/update/${budgetId}`,
+                `https://split-backend-02lh.onrender.com/api/update/${budgetId}`,
                 { amount },
                 { withCredentials: true }
               );
@@ -183,7 +183,7 @@ const Assistant = () => {
               );
             } else {
               await axios.post(
-                `https://split-backend-drcy.onrender.com/api/add`,
+                `https://split-backend-02lh.onrender.com/api/add`,
                 {
                   amount,
                   month: new Date(`${normalizedMonth} 1`).getMonth() + 1,
@@ -218,7 +218,7 @@ const Assistant = () => {
 
           try {
             await axios.post(
-              "https://split-backend-drcy.onrender.com/api/create",
+              "https://split-backend-02lh.onrender.com/api/create",
               { name: groupName, invitees },
               { withCredentials: true }
             );
@@ -240,7 +240,7 @@ const Assistant = () => {
           }
 
           try {
-            const { data: userRes } = await axios.get("https://split-backend-drcy.onrender.com/api/getUser", {
+            const { data: userRes } = await axios.get("https://split-backend-02lh.onrender.com/api/getUser", {
               withCredentials: true,
             });
 
@@ -259,7 +259,7 @@ const Assistant = () => {
             let splitBetween = dataSplit;
             if (dataSplit === "all_members" || !dataSplit) {
               const { data: eventRes } = await axios.get(
-                `https://split-backend-drcy.onrender.com/api/event/${eventId}`,
+                `https://split-backend-02lh.onrender.com/api/event/${eventId}`,
                 { withCredentials: true }
               );
               splitBetween = eventRes?.members || [];
@@ -277,7 +277,7 @@ const Assistant = () => {
                 : date || new Date().toISOString().slice(0, 10);
 
             await axios.post(
-              `https://split-backend-drcy.onrender.com/api/event/${eventId}/expense`,
+              `https://split-backend-02lh.onrender.com/api/event/${eventId}/expense`,
               {
                 description,
                 amount: parseFloat(amount),
