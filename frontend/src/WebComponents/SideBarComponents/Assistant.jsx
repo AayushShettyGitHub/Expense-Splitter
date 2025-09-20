@@ -16,7 +16,7 @@ const Assistant = () => {
   const navigate = useNavigate();
   const chatRef = useRef(null);
 
-  // Auto-scroll on new messages
+
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -64,7 +64,7 @@ const Assistant = () => {
 
     try {
       const { data: intentResponse } = await axios.post(
-        "http://localhost:3000/auth/ask",
+        "https://split-backend-263e.onrender.com/api/ask",
         { query },
         { withCredentials: true }
       );
@@ -83,7 +83,6 @@ const Assistant = () => {
     setMessages((prev) => [...prev, { role: "assistant", content: text }]);
   };
 
-  // Your intent handling stays the same
   const handleIntent = async ({ intent, data }) => {
     try {
       switch (intent) {
@@ -129,7 +128,7 @@ const Assistant = () => {
           };
 
           try {
-            await axios.post("http://localhost:3000/auth/expenses", expensePayload, {
+            await axios.post("https://split-backend-263e.onrender.com/api/expenses", expensePayload, {
               withCredentials: true,
             });
             toast({ title: "Expense added successfully." });
@@ -162,7 +161,7 @@ const Assistant = () => {
 
             try {
               const res = await axios.get(
-                `http://localhost:3000/auth/get?month=${
+                `https://split-backend-263e.onrender.com/api/get?month=${
                   new Date(`${normalizedMonth} 1`).getMonth() + 1
                 }&year=${numericYear}`,
                 { withCredentials: true }
@@ -175,7 +174,7 @@ const Assistant = () => {
 
             if (budgetExists && budgetId) {
               await axios.put(
-                `http://localhost:3000/auth/update/${budgetId}`,
+                `https://split-backend-263e.onrender.com/api/update/${budgetId}`,
                 { amount },
                 { withCredentials: true }
               );
@@ -184,7 +183,7 @@ const Assistant = () => {
               );
             } else {
               await axios.post(
-                `http://localhost:3000/auth/add`,
+                `https://split-backend-263e.onrender.com/api/add`,
                 {
                   amount,
                   month: new Date(`${normalizedMonth} 1`).getMonth() + 1,
@@ -219,7 +218,7 @@ const Assistant = () => {
 
           try {
             await axios.post(
-              "http://localhost:3000/auth/create",
+              "https://split-backend-263e.onrender.com/api/create",
               { name: groupName, invitees },
               { withCredentials: true }
             );
@@ -241,7 +240,7 @@ const Assistant = () => {
           }
 
           try {
-            const { data: userRes } = await axios.get("http://localhost:3000/auth/getUser", {
+            const { data: userRes } = await axios.get("https://split-backend-263e.onrender.com/api/getUser", {
               withCredentials: true,
             });
 
@@ -260,7 +259,7 @@ const Assistant = () => {
             let splitBetween = dataSplit;
             if (dataSplit === "all_members" || !dataSplit) {
               const { data: eventRes } = await axios.get(
-                `http://localhost:3000/auth/event/${eventId}`,
+                `https://split-backend-263e.onrender.com/api/event/${eventId}`,
                 { withCredentials: true }
               );
               splitBetween = eventRes?.members || [];
@@ -278,7 +277,7 @@ const Assistant = () => {
                 : date || new Date().toISOString().slice(0, 10);
 
             await axios.post(
-              `http://localhost:3000/auth/event/${eventId}/expense`,
+              `https://split-backend-263e.onrender.com/api/event/${eventId}/expense`,
               {
                 description,
                 amount: parseFloat(amount),
@@ -318,7 +317,6 @@ const Assistant = () => {
 
   return (
     <div className="flex flex-col w-full max-w-2xl mx-auto h-[80vh] border rounded-xl shadow bg-background">
-      {/* Chat Area */}
       <ScrollArea ref={chatRef} className="flex-1 p-4 space-y-3 overflow-y-auto">
         {messages.map((msg, i) => (
           <div
@@ -338,7 +336,6 @@ const Assistant = () => {
         ))}
       </ScrollArea>
 
-      {/* Input Area */}
       <form onSubmit={handleQuerySubmit} className="border-t p-3 flex gap-2">
         <Input
           value={query}

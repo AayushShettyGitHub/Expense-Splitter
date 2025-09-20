@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+
+const categories = ["Food", "Travel", "Shopping", "Bills", "Health", "Settlement", "Other"];
 
 const ViewExpense = () => {
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
-  // Filter state synced with searchParams
   const [category, setCategory] = useState(searchParams.get("category") || "all");
   const [month, setMonth] = useState(searchParams.get("month") || "");
   const [year, setYear] = useState(searchParams.get("year") || "");
@@ -22,11 +22,12 @@ const ViewExpense = () => {
       queryParams.append("userId", userId);
       if (filters.month) queryParams.append("month", filters.month);
       if (filters.year) queryParams.append("year", filters.year);
-      if (filters.category && filters.category !== "all")
+      if (filters.category && filters.category !== "all") {
         queryParams.append("category", filters.category);
+      }
 
       const res = await axios.get(
-        `http://localhost:3000/auth/getExpenses?${queryParams.toString()}`,
+        `https://split-backend-263e.onrender.com/api/getExpenses?${queryParams.toString()}`,
         { withCredentials: true }
       );
 
@@ -37,7 +38,6 @@ const ViewExpense = () => {
     }
   };
 
-  // Initial + searchParams-based fetch
   useEffect(() => {
     const monthParam = searchParams.get("month");
     const yearParam = searchParams.get("year");
@@ -54,7 +54,6 @@ const ViewExpense = () => {
     });
   }, [searchParams]);
 
-  // Filter by search input + category on frontend
   useEffect(() => {
     let filteredData = [...expenses];
 
@@ -64,12 +63,8 @@ const ViewExpense = () => {
       );
     }
 
-    if (category && category !== "all") {
-      filteredData = filteredData.filter((e) => e.category === category);
-    }
-
     setFiltered(filteredData);
-  }, [search, category, expenses]);
+  }, [search, expenses]);
 
   const handleApplyFilters = () => {
     const params = {};
@@ -89,32 +84,33 @@ const ViewExpense = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
       <div className="mb-4 flex flex-wrap gap-4">
         <input
           type="text"
           placeholder="Search by description"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border px-2 py-1 rounded"
+          className="border px-2 py-1 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
         />
 
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="border px-2 py-1 rounded"
+          className="border px-2 py-1 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
         >
           <option value="all">All Categories</option>
-          <option value="food">Food</option>
-          <option value="travel">Travel</option>
-          <option value="shopping">Shopping</option>
-          <option value="other">Other</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
 
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="border px-2 py-1 rounded"
+          className="border px-2 py-1 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
         >
           <option value="">Month</option>
           {Array.from({ length: 12 }, (_, i) => {
@@ -130,7 +126,7 @@ const ViewExpense = () => {
         <select
           value={year}
           onChange={(e) => setYear(e.target.value)}
-          className="border px-2 py-1 rounded"
+          className="border px-2 py-1 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
         >
           <option value="">Year</option>
           {["2023", "2024", "2025"].map((y) => (
@@ -157,13 +153,13 @@ const ViewExpense = () => {
 
       <div>
         {filtered.length === 0 ? (
-          <p className="text-gray-500">No expenses found.</p>
+          <p className="text-gray-500 dark:text-gray-400">No expenses found.</p>
         ) : (
           <ul className="space-y-2">
             {filtered.map((expense) => (
               <li
                 key={expense._id}
-                className="border p-3 rounded shadow-sm bg-white"
+                className="border p-3 rounded shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700"
               >
                 <p><strong>{expense.description}</strong></p>
                 <p>Category: {expense.category}</p>

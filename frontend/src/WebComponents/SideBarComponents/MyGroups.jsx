@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Card,
@@ -10,20 +10,20 @@ import {
 } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useSelectedGroup } from "@/context/SelectedGroupContext";
+import { useToast } from "@/components/use-toast";
 
 const MyGroups = () => {
   const [groups, setGroups] = useState([]);
   const navigate = useNavigate();
   const { setSelectedGroup } = useSelectedGroup();
+  const { toast } = useToast();
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/auth/my-groups", {
+      const res = await axios.get("https://split-backend-263e.onrender.com/api/my-groups", {
         withCredentials: true,
       });
-      // Filter only accepted groups
-      const acceptedGroups = res.data.filter(group => !group.isPendingInvite);
-      setGroups(acceptedGroups);
+      setGroups(res.data);
     } catch (err) {
       console.error("Failed to fetch groups", err);
     }

@@ -10,7 +10,7 @@ if (!url) {
 
 const connectToDatabase = async () => {
   try {
-    await mongoose.connect(url);
+    await mongoose.connect(url)
     console.log('Connected to MongoDB');
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);

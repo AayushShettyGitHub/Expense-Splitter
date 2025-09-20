@@ -23,7 +23,7 @@ export default function Profile() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3000/auth/getUser", { withCredentials: true })
+      .get("https://split-backend-263e.onrender.com/api/getUser", { withCredentials: true })
       .then((res) => {
         setUser(res.data);
         setFormData({
@@ -57,12 +57,12 @@ export default function Profile() {
     }
 
     axios
-      .put("http://localhost:3000/auth/update", data, {
+      .put("https://split-backend-263e.onrender.com/api/update", data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       })
       .then((res) => {
-        setUser(res.data.user); // backend sends updated user inside { user: ... }
+        setUser(res.data.user);
         setEditing(false);
       })
       .catch((err) => console.error("Error updating profile:", err));

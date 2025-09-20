@@ -43,7 +43,7 @@ const Layout = ({ pageTitle, children }) => {
                 </Breadcrumb>
               </div>
 
-              <ThemeToggle /> {/* Top-right theme switch */}
+              <ThemeToggle /> 
             </header>
 
             <main className="flex flex-1 flex-col p-4 pt-0">{children}</main>

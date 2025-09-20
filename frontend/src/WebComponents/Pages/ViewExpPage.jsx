@@ -1,5 +1,5 @@
 import React from "react";
-import Layout from "@/WebComponents/Pages/Layout"; // the layout component for the page
+import Layout from "@/WebComponents/Pages/Layout";
 import ViewExpense from "@/WebComponents/SideBarComponents/ViewExpense";
 
 const ViewExpPage = () => {

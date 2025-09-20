@@ -23,8 +23,8 @@ const AddExpenseForm = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/auth/expenses",
+      await axios.post(
+        "https://split-backend-263e.onrender.com/api/expenses",
         { ...form },
         { withCredentials: true }
       );
@@ -44,7 +44,7 @@ const AddExpenseForm = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 shadow-md rounded-md mt-8">
+    <div className="max-w-md mx-auto bg-white dark:bg-gray-900 p-6 shadow-md rounded-md mt-8 text-gray-900 dark:text-gray-100">
       <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -54,7 +54,7 @@ const AddExpenseForm = () => {
             name="amount"
             value={form.amount}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
             required
           />
         </div>
@@ -65,7 +65,7 @@ const AddExpenseForm = () => {
             name="category"
             value={form.category}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
             required
           >
             <option value="">Select</option>
@@ -74,6 +74,7 @@ const AddExpenseForm = () => {
             <option value="Shopping">Shopping</option>
             <option value="Bills">Bills</option>
             <option value="Health">Health</option>
+            <option value="Settlement">Settlement</option>
             <option value="Other">Other</option>
           </select>
         </div>
@@ -85,7 +86,7 @@ const AddExpenseForm = () => {
             name="date"
             value={form.date}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
           />
         </div>
 
@@ -96,7 +97,7 @@ const AddExpenseForm = () => {
             name="description"
             value={form.description}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
           />
         </div>
 
@@ -106,7 +107,7 @@ const AddExpenseForm = () => {
             name="paymentMode"
             value={form.paymentMode}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
           >
             <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
@@ -118,14 +119,16 @@ const AddExpenseForm = () => {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-70"
           disabled={loading}
         >
           {loading ? "Adding..." : "Add Expense"}
         </button>
 
         {message && (
-          <p className="text-sm mt-2 text-center text-gray-700">{message}</p>
+          <p className="text-sm mt-2 text-center text-gray-700 dark:text-gray-300">
+            {message}
+          </p>
         )}
       </form>
     </div>

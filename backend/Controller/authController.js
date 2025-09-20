@@ -1,6 +1,5 @@
 require('dotenv').config();
 const streamifier = require("streamifier");
-const { sendResetEmail } = require('../config/sendMail');
 const { generateToken } = require('../config/utils');
 const { uploadImageToCloudinary } = require('./cloudinary');
 
@@ -11,71 +10,7 @@ const { OAuth2Client } = require('google-auth-library');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
 
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user || user.resetOTP !== otp || Date.now() > user.resetOTPExpiry) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
-    user.resetOTP = null;
-    user.resetOTPExpiry = null;
-    await user.save();
-
-    res.status(200).json({ message: 'OTP verified successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to verify OTP', error: error.message });
-  }
-};
-
-exports.resetPassword = async (req, res) => {
-  const { email, newPassword } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user || Date.now() > user.resetOTPExpiry) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
-    user.password = newPassword;
-    user.resetOTP = null;
-    user.resetOTPExpiry = null;
-    await user.save();
-
-    res.status(200).json({ message: 'Password reset successful' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to reset password', error: error.message });
-  }
-};
-
-exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'Email not found' });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = Date.now() + 10 * 60 * 1000;
-
-    user.resetOTP = otp;
-    user.resetOTPExpiry = expiry;
-    await user.save();
-
-    await sendResetEmail(email, otp);
-
-    res.status(200).json({ message: 'OTP sent to your email' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error sending OTP', error: error.message });
-  }
-};
 
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -158,7 +93,7 @@ exports.update = async (req, res) => {
 
 
 exports.loginUser = async (req, res) => {
-  console.log("Login route hit");
+  
   const { email, password } = req.body;
 
   try {
@@ -168,15 +103,14 @@ exports.loginUser = async (req, res) => {
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-    console.log("User found:", user);
+    
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("Password match status:", isMatch);
+   
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
     
     const token = generateToken(user._id, res);
-    console.log("Token:",token)
     res.status(200).json({
       token,
       user: {

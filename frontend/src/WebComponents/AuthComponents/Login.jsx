@@ -59,7 +59,7 @@ export function Login() {
     }
     try {
       const res = await axios.post(
-        "http://localhost:3000/auth/register",
+        "https://split-backend-263e.onrender.com/api/register",
         formData
       );
       console.log("Signed up:", res.data);
@@ -77,7 +77,7 @@ export function Login() {
     setError("");
     try {
       const res = await axios.post(
-        "http://localhost:3000/auth/login",
+        "https://split-backend-263e.onrender.com/api/login",
         {
           email: formData.email,
           password: formData.password,
@@ -94,7 +94,7 @@ export function Login() {
 
   const handleGoogleSuccess = async (response) => {
     try {
-      const res = await axios.post("http://localhost:3000/auth/google", {
+      const res = await axios.post("https://split-backend-263e.onrender.com/api/google", {
         googleToken: response.credential,
       });
       Cookies.set("jwt", res.data.token, { expires: 7 });

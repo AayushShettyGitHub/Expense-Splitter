@@ -5,7 +5,6 @@ import Assistant from "@/WebComponents/SideBarComponents/Assistant";
 const AssistantPage = () => {
   const [messages, setMessages] = useState([]);
 
-  // Load saved messages from localStorage when page mounts
   useEffect(() => {
     const saved = localStorage.getItem("assistant-chat");
     if (saved) {
@@ -13,7 +12,6 @@ const AssistantPage = () => {
     }
   }, []);
 
-  // Save messages whenever they change
   useEffect(() => {
     if (messages.length > 0) {
       localStorage.setItem("assistant-chat", JSON.stringify(messages));

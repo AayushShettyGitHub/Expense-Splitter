@@ -17,7 +17,7 @@ const Invites = () => {
 
   const fetchInvites = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/auth/my-groups", {
+      const res = await axios.get("https://split-backend-263e.onrender.com/api/my-groups", {
         withCredentials: true,
       });
       const pending = res.data.filter(group => group.isPendingInvite);
@@ -30,7 +30,7 @@ const Invites = () => {
   const handleAccept = async (groupId) => {
     try {
       await axios.post(
-        `http://localhost:3000/auth/accept-invite/${groupId}`,
+        `https://split-backend-263e.onrender.com/api/accept-invite/${groupId}`,
         {},
         { withCredentials: true }
       );

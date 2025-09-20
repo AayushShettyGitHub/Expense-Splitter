@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { uploadImageToCloudinary } = require('../Controller/cloudinary');
 
-//User Schema
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,

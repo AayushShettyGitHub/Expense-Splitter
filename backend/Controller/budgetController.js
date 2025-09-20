@@ -1,6 +1,5 @@
 const Budget = require("../models/budgetSchema");
 
-// POST /budget/add
 exports.addBudget = async (req, res) => {
 
   const { month, year, amount } = req.body;
@@ -35,9 +34,8 @@ exports.addBudget = async (req, res) => {
 };
 
 
-// GET /budget/get?month=6&year=2025
 exports.getBudget = async (req, res) => {
-  console.log("Yooooooo get")
+
   const userId = req.userId;    
   const { month, year } = req.query;
 
@@ -59,15 +57,13 @@ exports.getBudget = async (req, res) => {
       year: budget.year,
     });
   } catch (err) {
-    console.error("🔥 Error in getBudget:", err);
+    console.error("Error in getting Budget:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
 
 
-// PUT /budget/update/:id
 exports.updateBudget = async (req, res) => {
-  console.log("Yooooooo update")
   const { id } = req.params;
   const { amount } = req.body;
 
@@ -89,7 +85,6 @@ exports.updateBudget = async (req, res) => {
   }
 };
 
-// DELETE /budget/delete/:id
 exports.deleteBudget = async (req, res) => {
   const { id } = req.params;
 
@@ -108,7 +103,6 @@ exports.deleteBudget = async (req, res) => {
 };
 
 
-// PUT /budget/update/:id
 exports.updateBudget = async (req, res) => {
   const { id } = req.params;
   const { amount } = req.body;
@@ -131,7 +125,7 @@ exports.updateBudget = async (req, res) => {
   }
 };
 
-// DELETE /budget/delete/:id
+
 exports.deleteBudget = async (req, res) => {
   const { id } = req.params;
 

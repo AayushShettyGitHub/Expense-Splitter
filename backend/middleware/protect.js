@@ -9,7 +9,6 @@ exports.protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded JWT:", decoded);
 req.userId = decoded.userId; 
 
     next();

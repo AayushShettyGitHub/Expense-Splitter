@@ -1,5 +1,3 @@
-// AssistantWidget.jsx
-"use client";
 
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
@@ -9,7 +7,7 @@ export default function AssistantWidget() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
 
-  // Load messages from sessionStorage
+
   useEffect(() => {
     const saved = sessionStorage.getItem("assistantLogs");
     if (saved) {
@@ -17,7 +15,7 @@ export default function AssistantWidget() {
     }
   }, []);
 
-  // Save messages to sessionStorage
+ 
   useEffect(() => {
     sessionStorage.setItem("assistantLogs", JSON.stringify(messages));
   }, [messages]);

@@ -5,7 +5,6 @@ const { User, Expense: Transaction } = require('../models/schema');
 const Event = require("../models/Event");
 
 
-// POST /event/:eventId/expense
 exports.addExpenseEvent = async (req, res) => {
   const { eventId } = req.params;
   const { description, amount, paidBy, splitBetween } = req.body;
@@ -15,8 +14,11 @@ exports.addExpenseEvent = async (req, res) => {
   }
 
   try {
-    const event = await Event.findById(eventId);
+    const event = await Event.findById(eventId).populate("members", "_id");
     if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
 
     const expense = new Expense({
       event: eventId,
@@ -27,6 +29,7 @@ exports.addExpenseEvent = async (req, res) => {
     });
 
     await expense.save();
+
     res.status(201).json({ message: "Expense added successfully", expense });
   } catch (err) {
     console.error("Error adding expense:", err);
@@ -38,8 +41,11 @@ exports.getEventById = async (req, res) => {
   const { eventId } = req.params;
 
   try {
-    const event = await Event.findById(eventId);
+    const event = await Event.findById(eventId).populate("members", "_id");
     if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
 
     res.status(200).json(event);
   } catch (err) {
@@ -48,11 +54,16 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-// GET /event/:eventId/expenses
 exports.getExpensesByEvent = async (req, res) => {
   const { eventId } = req.params;
 
   try {
+    const event = await Event.findById(eventId).populate("members", "_id");
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+
     const expenses = await Expense.find({ event: eventId })
       .populate("paidBy", "name email")
       .populate("splitBetween", "name email")
@@ -65,11 +76,16 @@ exports.getExpensesByEvent = async (req, res) => {
   }
 };
 
-// GET /event/:eventId/settlements
 exports.getOptimizedEventSettlements = async (req, res) => {
   const { eventId } = req.params;
 
   try {
+    const event = await Event.findById(eventId).populate("members", "_id");
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+
     const existingSettlement = await Settlement.findOne({ event: eventId }).sort({ createdAt: -1 });
     if (existingSettlement) {
       return res.status(200).json({ 
@@ -135,7 +151,6 @@ exports.getOptimizedEventSettlements = async (req, res) => {
 
     await saved.save();
 
-    // Create Transaction records
     for (const s of settlements) {
       const settlementExpense = new Transaction({
         userId: s.from,
@@ -147,7 +162,6 @@ exports.getOptimizedEventSettlements = async (req, res) => {
       });
       await settlementExpense.save();
     }
-
     res.status(200).json({ 
       message: "Settlements calculated and stored", 
       settlements: saved.settlements,
@@ -159,12 +173,17 @@ exports.getOptimizedEventSettlements = async (req, res) => {
   }
 };
 
-// PATCH /event/:eventId/settlement/:settlementId/pay
 exports.markEventSettlementPaid = async (req, res) => {
   const { eventId, settlementId } = req.params;
   const userId = req.userId;
 
   try {
+    const event = await Event.findById(eventId).populate("members", "_id");
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const isMember = event.members.some(m => m._id.toString() === userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+
     const settlementDoc = await Settlement.findOne({ event: eventId });
     if (!settlementDoc) return res.status(404).json({ message: "Settlement not found" });
 
@@ -178,11 +197,9 @@ exports.markEventSettlementPaid = async (req, res) => {
     settlement.status = "paid";
     settlement.updatedAt = new Date();
 
-    // Check if all are paid
     settlementDoc.settlementEnded = settlementDoc.settlements.every(s => s.status === "paid");
 
     await settlementDoc.save();
-
     res.status(200).json({ message: "Settlement marked as paid", settlement, settlementEnded: settlementDoc.settlementEnded });
   } catch (err) {
     console.error(err);
@@ -190,26 +207,24 @@ exports.markEventSettlementPaid = async (req, res) => {
   }
 };
 
-// GET /event/:eventId/settlements
 exports.getSettlementsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Make sure event exists; 404 if it doesn't
-    const event = await Event.findById(eventId).select("_id");
+    const event = await Event.findById(eventId).populate("members", "_id");
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Fetch settlement docs for this event (most recent first)
+    const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+
     const settlements = await Settlement.find({ event: eventId }).sort({ createdAt: -1 }).lean();
 
-    // If none, return 200 with an empty settlements array and settlementEnded=false
     if (!settlements || settlements.length === 0) {
       return res.status(200).json({ settlements: [], settlementEnded: false });
     }
 
-    // Otherwise return the latest settlement record (defensive defaults)
     const latest = settlements[0] || {};
     return res.status(200).json({
       settlements: Array.isArray(latest.settlements) ? latest.settlements : [],
@@ -220,5 +235,3 @@ exports.getSettlementsByEvent = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch settlements." });
   }
 };
-
-

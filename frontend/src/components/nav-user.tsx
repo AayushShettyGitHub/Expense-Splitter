@@ -46,7 +46,7 @@ export function NavUser() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/auth/getUser", {
+        const res = await axios.get("https://split-backend-263e.onrender.com/api/getUser", {
           withCredentials: true,
         })
         setUser(res.data) 
@@ -60,7 +60,7 @@ export function NavUser() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/auth/logout", {}, { withCredentials: true })
+      await axios.post("https://split-backend-263e.onrender.com/api/logout", {}, { withCredentials: true })
       navigate("/login") 
     } catch (error) {
       console.error("Logout failed:", error)

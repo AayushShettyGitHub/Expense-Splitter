@@ -1,6 +1,6 @@
 import React from "react";
-import Layout from "@/WebComponents/Pages/Layout"; // the layout component for the page
-import AddExpenseForm from "@/WebComponents/SideBarComponents/ManageExpense"; // the actual form logic
+import Layout from "@/WebComponents/Pages/Layout";
+import AddExpenseForm from "@/WebComponents/SideBarComponents/ManageExpense";
 
 const AddExpense = () => {
   return (

@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -39,7 +38,7 @@ const Budget = () => {
   const fetchBudget = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:3000/auth/get?month=${month}&year=${year}`,
+        `https://split-backend-263e.onrender.com/api/get?month=${month}&year=${year}`,
         { withCredentials: true }
       );
       setBudget(res.data);
@@ -53,7 +52,7 @@ const Budget = () => {
   const fetchExpenses = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:3000/auth/getExpenses?month=${month}&year=${year}`,
+        `https://split-backend-263e.onrender.com/api/getExpenses?month=${month}&year=${year}`,
         { withCredentials: true }
       );
       const total = res.data.reduce((acc, e) => acc + e.amount, 0);
@@ -72,13 +71,13 @@ const Budget = () => {
     try {
       if (budget) {
         await axios.put(
-          `http://localhost:3000/auth/update/${budget._id}`,
+          `https://split-backend-263e.onrender.com/api/update/${budget._id}`,
           { amount },
           { withCredentials: true }
         );
       } else {
         await axios.post(
-          "http://localhost:3000/auth/add",
+          "https://split-backend-263e.onrender.com/api/add",
           { amount, month, year },
           { withCredentials: true }
         );
@@ -92,7 +91,7 @@ const Budget = () => {
   const handleDelete = async () => {
     try {
       await axios.delete(
-        `http://localhost:3000/auth/delete/${budget._id}`,
+        `https://split-backend-263e.onrender.com/api/delete/${budget._id}`,
         { withCredentials: true }
       );
       setBudget(null);
@@ -115,7 +114,6 @@ const Budget = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Filters */}
           <div className="flex gap-4 items-center flex-wrap">
             <Select value={month} onValueChange={setMonth}>
               <SelectTrigger className="w-40">
@@ -154,7 +152,6 @@ const Budget = () => {
             </Button>
           </div>
 
-          {/* Budget Info */}
           {budget ? (
             <div className="space-y-4">
               <div className="text-lg">

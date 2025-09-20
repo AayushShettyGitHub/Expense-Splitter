@@ -42,7 +42,7 @@ const CreateGroup = () => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:3000/auth/create",
+        "https://split-backend-263e.onrender.com/api/create",
         { name: groupName, invitees },
         { withCredentials: true }
       );
@@ -66,7 +66,6 @@ const CreateGroup = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Group Name Input */}
           <div>
             <Label>Group Name</Label>
             <Input

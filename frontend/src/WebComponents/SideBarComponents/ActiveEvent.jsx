@@ -1,22 +1,23 @@
 // Sidebar.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useToast } from "@/components/use-toast";
 
 const ActiveEvent = ({ onTargetSelect }) => {
   const [events, setEvents] = useState([]);
   const [targetEvent, setTargetEvent] = useState(null);
+  const { toast } = useToast();
 
-  // Fetch active events and restore target from localStorage
+
   useEffect(() => {
     const fetchActiveEvents = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:3000/auth/user/active-events",
+          "https://split-backend-263e.onrender.com/api/user/active-events",
           { withCredentials: true }
         );
         setEvents(res.data);
 
-        // Try restoring target from localStorage
         const savedTarget = localStorage.getItem("targetEvent");
         if (savedTarget) {
           setTargetEvent(savedTarget);
@@ -28,11 +29,11 @@ const ActiveEvent = ({ onTargetSelect }) => {
     fetchActiveEvents();
   }, []);
 
-  // Handle selecting a target event
+
   const handleSelectTarget = async (event) => {
     try {
       const res = await axios.patch(
-        `http://localhost:3000/auth/target/${event._id}`,
+        `https://split-backend-263e.onrender.com/api/target/${event._id}`,
         {},
         { withCredentials: true }
       );

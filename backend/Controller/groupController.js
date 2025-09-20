@@ -3,6 +3,7 @@ const Split= require("../models/splitSchema");
 const Event = require("../models/Event");
 const {User} = require("../models/schema");
 
+
 exports.createGroup = async (req, res) => {
   const { name, invitees } = req.body;
 
@@ -22,14 +23,12 @@ exports.createGroup = async (req, res) => {
 
     const invitedUserIds = invitedUsers.map(user => user._id);
 
-    const group = new Group({
+    const group = await Group.create({
       name,
       admin: req.userId,
       members: [req.userId], 
       pendingInvites: invitedUserIds,
     });
-
-    await group.save();
 
     res.status(201).json({ message: "Group created", group });
   } catch (err) {
@@ -50,16 +49,16 @@ exports.getMyGroups = async (req, res) => {
     })
       .populate("admin", "name email")
       .populate("members", "name email")
-      .lean(); // use .lean() to modify the object directly
+      .lean(); 
 
-    const enrichedGroups = groups.map(group => ({
+    const myGroups = groups.map(group => ({
       ...group,
       isPendingInvite: group.pendingInvites.some(
         id => id.toString() === req.userId
       ),
     }));
 
-    res.status(200).json(enrichedGroups);
+    res.status(200).json(myGroups);
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch groups",
@@ -68,7 +67,7 @@ exports.getMyGroups = async (req, res) => {
   }
 };
 
-// GET /auth/group/:groupId
+
 exports.getGroupById = async (req, res) => {
   try {
     const groupId = req.params.id;
@@ -144,7 +143,6 @@ exports.sendInvite = async (req, res) => {
     
     group.pendingInvites.push(userToInvite._id);
     await group.save();
-
     res.status(200).json({ message: "Invite sent", group });
   } catch (err) {
     console.error("Failed to send invite:", err);
@@ -208,11 +206,11 @@ exports.createEvent = async (req, res) => {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Ensure all members exist
+    if (group.admin.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: "Only the group admin can create events" });
+    }
     const eventMembers = await User.find({ _id: { $in: members } });
     const eventMemberIds = eventMembers.map(user => user._id);
-
-    // Create the event
     let event = new Event({
       group: groupId,
       name,
@@ -222,8 +220,6 @@ exports.createEvent = async (req, res) => {
     });
 
     await event.save();
-
-    // Populate members before sending response
     event = await Event.findById(event._id).populate("members", "name email");
 
     res.status(201).json({ message: "Event created", event });
@@ -234,7 +230,7 @@ exports.createEvent = async (req, res) => {
 };
 
 
-// GET /group/:groupId/events
+
 exports.getEventsByGroup = async (req, res) => {
   const { groupId } = req.params;
 
@@ -259,26 +255,20 @@ exports.getEventsByGroup = async (req, res) => {
 
 exports.setActiveEvent = async (req, res) => {
   try {
-    console.log("setActiveEvent called");
     const { groupId, eventId } = req.params;
 
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: "Group not found" });
-
-    // Check if logged-in user is group admin
-    console.log("Group admin ID:", group.admin.toString());
-    console.log("Logged-in user ID:", req.userId);
     if (group.admin.toString() !== req.userId.toString()) {
       return res.status(403).json({ message: "Only the group admin can set active events" });
     }
 
-    // Set active event
+
     if (!group.activeEvents.includes(eventId)) {
       group.activeEvents.push(eventId);
       await group.save();
     }
 
-    console.log("Active events updated:", group.activeEvents);
 
     res.json({
       message: "Event set as active",
@@ -324,21 +314,19 @@ exports.getActiveEvents = async (req, res) => {
   }
 };
 
-// controller
+
 exports.getUserActiveEvents = async (req, res) => {
   try {
     const userId = req.userId;
-
-    // Step 1: Find all groups user belongs to and include their activeEvents
     const groups = await Group.find({ members: userId })
       .select("name activeEvents")
-      .populate("activeEvents", "name group"); // get event name and group id
+      .populate("activeEvents", "name group"); 
 
     if (!groups.length) {
       return res.status(200).json([]);
     }
 
-    // Step 2: Flatten events with their group name
+  
     const activeEvents = [];
     groups.forEach((group) => {
       group.activeEvents.forEach((event) => {
@@ -361,7 +349,7 @@ exports.getUserActiveEvents = async (req, res) => {
 
 exports.setTargetEvent = async (req, res) => {
   try {
-    const userId = req.userId; // populated by protect middleware
+    const userId = req.userId; 
     const { eventId } = req.params;
 
     if (!eventId) {
@@ -372,14 +360,10 @@ exports.setTargetEvent = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    // Fetch event to get grpId
     const event = await Event.findById(eventId).select("group");
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-
-    // Toggle targetEvent
     if (user.targetEvent?.toString() === eventId) {
       user.targetEvent = null;
     } else {

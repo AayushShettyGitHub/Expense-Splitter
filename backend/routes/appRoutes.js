@@ -19,18 +19,15 @@ const {
 const { handleAssistantQuery } = require('../services/gemini');
 const { upload } = require('../middleware/multer');
 
-// Auth routes
+// Authentication routes
 router.post('/register', registerUser);
 router.put("/update", protect, upload.single("profileImage"), update);
 router.post('/login', loginUser);
 router.post('/google', googleSignIn);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
-router.post('/verify-otp', verifyOtp);
 router.get('/getUser', protect, getCurrentUser);
 router.post('/logout', protect, logout);
 
-// Expenses routes
+// Personal Expenses routes
 router.post('/expenses', protect, addExpense); 
 router.get('/getExpenses', protect, getExpenses);
 
@@ -53,7 +50,7 @@ router.get("/groups/:groupId/events/active", getActiveEvents); // list active ev
 router.get("/user/active-events", protect, getUserActiveEvents);
 router.patch("/target/:eventId", protect, setTargetEvent);
 
-// Event routes (under a group)
+// Event routes 
 router.post("/group/:groupId/event", protect, createEvent);
 router.get("/group/:groupId/events", protect, getEventsByGroup);
 
@@ -65,7 +62,7 @@ router.get("/event/:eventId/settlements", protect, getOptimizedEventSettlements)
 router.get("/event/settlements/:eventId", protect, getSettlementsByEvent);
 router.patch("/event/mark-paid/:eventId/:settlementId", protect, markEventSettlementPaid);
 
-// Assistant query
+// Assistant routes
 router.post("/ask", protect, handleAssistantQuery);
 
 module.exports = router;
