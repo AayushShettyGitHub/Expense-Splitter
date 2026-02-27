@@ -28,7 +28,7 @@ const months = ["",
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#00c49f", "#ffbb28", "#ff8042"];
 
 const PersonalDashboard = () => {
-  const currentMonth = new Date().getMonth()+1;
+  const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
   const [month, setMonth] = useState(currentMonth.toString());
@@ -40,8 +40,8 @@ const PersonalDashboard = () => {
   const fetchData = async () => {
     try {
       const [budgetRes, expenseRes] = await Promise.all([
-        axios.get(`https://split-backend-02lh.onrender.com/api/get?month=${month}&year=${year}`, { withCredentials: true }),
-        axios.get(`https://split-backend-02lh.onrender.com/api/getExpenses?month=${month}&year=${year}`, { withCredentials: true }),
+        axios.get(`http://localhost:3000/api/get?month=${month}&year=${year}`, { withCredentials: true }),
+        axios.get(`http://localhost:3000/api/getExpenses?month=${month}&year=${year}`, { withCredentials: true }),
       ]);
 
       setBudget(budgetRes.data);
@@ -72,10 +72,18 @@ const PersonalDashboard = () => {
     value: amt,
   }));
 
-  const barData = expenses.map((e) => ({
-    date: new Date(e.date).getDate(),
-    amount: e.amount,
-  }));
+  const dailyTotals = expenses.reduce((acc, e) => {
+    const day = new Date(e.date).getDate();
+    acc[day] = (acc[day] || 0) + e.amount;
+    return acc;
+  }, {});
+
+  const barData = Object.entries(dailyTotals)
+    .map(([date, amount]) => ({
+      date: parseInt(date),
+      amount: amount,
+    }))
+    .sort((a, b) => a.date - b.date);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">

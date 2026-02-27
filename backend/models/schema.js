@@ -83,7 +83,15 @@ const ExpenseSchema = new mongoose.Schema({
     enum: ['Cash', 'UPI', 'Card', 'Netbanking', 'Other'],
     default: 'Cash',
   },
-
+  isRecurring: { type: Boolean, default: false },
+  recurrenceType: {
+    type: String,
+    enum: ['daily', 'weekly', 'monthly', 'yearly', null],
+    default: null,
+  },
+  endDate: { type: Date, default: null },
+  nextOccurrence: { type: Date, default: null },
+  isActive: { type: Boolean, default: true },
 
 
 }, { timestamps: true });

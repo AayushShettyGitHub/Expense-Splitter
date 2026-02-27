@@ -5,7 +5,10 @@ const {
   resetPassword, verifyOtp, getCurrentUser, logout 
 } = require('../Controller/authController');
 const { protect } = require('../middleware/protect');
-const { addExpense, getExpenses } = require('../Controller/expenseController');
+const { addExpense, getExpenses,addRecurringExpense,
+  getRecurringExpenses,
+  toggleRecurringExpense,
+  deleteRecurringExpense, } = require('../Controller/expenseController');
 const { 
   addExpenseEvent, getExpensesByEvent, getOptimizedEventSettlements,
   getSettlementsByEvent, markEventSettlementPaid,getEventById
@@ -28,6 +31,11 @@ router.get('/getUser', protect, getCurrentUser);
 router.post('/logout', protect, logout);
 
 // Personal Expenses routes
+router.post('/recurring', protect, addRecurringExpense);
+router.get('/recurring', protect, getRecurringExpenses);
+router.patch('/recurring/:id/toggle', protect, toggleRecurringExpense);
+router.delete('/recurring/:id', protect, deleteRecurringExpense);
+
 router.post('/expenses', protect, addExpense); 
 router.get('/getExpenses', protect, getExpenses);
 

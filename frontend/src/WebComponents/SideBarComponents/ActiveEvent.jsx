@@ -1,19 +1,19 @@
-// Sidebar.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useToast } from "@/components/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Target, Activity, ChevronRight, Info } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 const ActiveEvent = ({ onTargetSelect }) => {
   const [events, setEvents] = useState([]);
   const [targetEvent, setTargetEvent] = useState(null);
   const { toast } = useToast();
 
-
   useEffect(() => {
     const fetchActiveEvents = async () => {
       try {
         const res = await axios.get(
-          "https://split-backend-02lh.onrender.com/api/user/active-events",
+          "http://localhost:3000/api/user/active-events",
           { withCredentials: true }
         );
         setEvents(res.data);
@@ -29,20 +29,19 @@ const ActiveEvent = ({ onTargetSelect }) => {
     fetchActiveEvents();
   }, []);
 
-
   const handleSelectTarget = async (event) => {
     try {
       const res = await axios.patch(
-        `https://split-backend-02lh.onrender.com/api/target/${event._id}`,
+        `http://localhost:3000/api/target/${event._id}`,
         {},
         { withCredentials: true }
       );
-      console.log("Target event response:", res.data);
 
       const newTarget = res.data.targetEvent || null;
       setTargetEvent(newTarget);
       if (newTarget) {
         localStorage.setItem("targetEvent", newTarget);
+        toast({ title: `Target set to ${event.name}` });
       } else {
         localStorage.removeItem("targetEvent");
       }
@@ -52,40 +51,70 @@ const ActiveEvent = ({ onTargetSelect }) => {
       }
     } catch (err) {
       console.error("Error setting target event:", err);
+      toast({ title: "Failed to set target", variant: "destructive" });
     }
   };
 
   return (
-    <aside className="w-64 bg-gray-900 text-white h-screen p-4 flex flex-col">
-      <h2 className="text-lg font-semibold mb-4 border-b border-gray-700 pb-2">
-        Active Events
-      </h2>
-      <div className="flex-1 overflow-y-auto space-y-2">
+    <aside className="w-full h-full p-4 flex flex-col space-y-6">
+      <div className="flex items-center gap-2 px-2">
+        <Activity className="text-blue-500" size={24} />
+        <h2 className="text-xl font-bold text-foreground">Active Trips</h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
         {events.length > 0 ? (
-          events.map((event) => (
-            <div
-              key={event._id}
-              onClick={() => handleSelectTarget(event)}
-              className={`p-3 rounded-lg cursor-pointer transition ${
-                targetEvent === event._id
-                  ? "bg-blue-600"
-                  : "bg-gray-800 hover:bg-gray-700"
-              }`}
-            >
-              <p className="font-medium">{event.name}</p>
-              <p className="text-sm text-gray-400">{event.group?.name}</p>
-            </div>
-          ))
+          events.map((event) => {
+            const isTarget = targetEvent === event._id;
+            return (
+              <Card
+                key={event._id}
+                onClick={() => handleSelectTarget(event)}
+                className={`group cursor-pointer border-none transition-all duration-300 hover:scale-[1.02] ${isTarget
+                  ? "bg-blue-600 shadow-lg shadow-blue-500/20"
+                  : "bg-muted/50 hover:bg-muted shadow-sm"
+                  }`}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className={`font-semibold text-lg leading-tight ${isTarget ? "text-white" : "text-foreground"}`}>
+                      {event.name}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <p className={`text-sm ${isTarget ? "text-blue-100" : "text-muted-foreground"}`}>
+                        {event.group?.name}
+                      </p>
+                      {isTarget && <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider">Target</span>}
+                    </div>
+                  </div>
+                  <ChevronRight
+                    className={`transition-transform duration-300 group-hover:translate-x-1 ${isTarget ? "text-white/70" : "text-muted-foreground/50"
+                      }`}
+                    size={20}
+                  />
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
-          <p className="text-gray-400 text-sm">No active events</p>
+          <div className="flex flex-col items-center justify-center h-48 space-y-3 bg-muted/30 rounded-2xl border border-dashed text-muted-foreground">
+            <Info size={32} />
+            <p className="text-sm font-medium">No active trips yet</p>
+          </div>
         )}
       </div>
+
       {targetEvent && (
-        <div className="mt-4 p-2 bg-gray-800 rounded-md text-sm">
-          Target:{" "}
-          <span className="font-semibold">
-            {events.find((e) => e._id === targetEvent)?.name || "Unknown"}
-          </span>
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center gap-3 border border-blue-100 dark:border-blue-900/30">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+            <Target className="text-blue-600 dark:text-blue-400" size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-blue-600 dark:text-blue-400">Current Target</p>
+            <p className="text-sm font-semibold truncate text-foreground">
+              {events.find((e) => e._id === targetEvent)?.name || "Analyzing..."}
+            </p>
+          </div>
         </div>
       )}
     </aside>

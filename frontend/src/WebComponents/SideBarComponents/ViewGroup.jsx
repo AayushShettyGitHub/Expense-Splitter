@@ -17,7 +17,7 @@ const useCurrentUser = () => {
   const [user, setUser] = useState(null);
   useEffect(() => {
     axios
-      .get("https://split-backend-02lh.onrender.com/api/getUser", { withCredentials: true })
+      .get("http://localhost:3000/api/getUser", { withCredentials: true })
       .then((res) => setUser(res.data))
       .catch(console.error);
   }, []);
@@ -25,7 +25,7 @@ const useCurrentUser = () => {
 };
 
 // ---------------- SelectedTripView ----------------
-const SelectedTripView = ({ trip, user, onBack, memberById }) => {
+const SelectedTripView = ({ trip, user, group, onBack, memberById }) => {
   const { toast } = useToast();
   const [tripExpenses, setTripExpenses] = useState([]);
   const [tripBalances, setTripBalances] = useState({});
@@ -63,7 +63,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     const fetchExpensesAndSettlements = async () => {
       try {
         const expRes = await axios.get(
-          `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expenses`,
+          `http://localhost:3000/api/event/${trip._id}/expenses`,
           { withCredentials: true }
         );
         console.log("Fetched expenses:", expRes.data);
@@ -71,7 +71,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
         calculateTripBalances(expRes.data || []);
 
         const setRes = await axios.get(
-          `https://split-backend-02lh.onrender.com/api/event/settlements/${trip._id}`,
+          `http://localhost:3000/api/event/settlements/${trip._id}`,
           { withCredentials: true }
         );
         setTripSettlements(setRes.data?.settlements || []);
@@ -99,7 +99,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     }
     try {
       await axios.post(
-        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expense`,
+        `http://localhost:3000/api/event/${trip._id}/expense`,
         {
           amount: parseFloat(expenseAmount),
           description: expenseDesc,
@@ -110,7 +110,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
       );
 
       const updated = await axios.get(
-        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/expenses`,
+        `http://localhost:3000/api/event/${trip._id}/expenses`,
         { withCredentials: true }
       );
       setTripExpenses(updated.data || []);
@@ -130,11 +130,11 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
     setLoadingSettlement(true);
     try {
       await axios.get(
-        `https://split-backend-02lh.onrender.com/api/event/${trip._id}/settlements`,
+        `http://localhost:3000/api/event/${trip._id}/settlements`,
         { withCredentials: true }
       );
       const res = await axios.get(
-        `https://split-backend-02lh.onrender.com/api/event/settlements/${trip._id}`,
+        `http://localhost:3000/api/event/settlements/${trip._id}`,
         { withCredentials: true }
       );
       setTripSettlements(res.data?.settlements || []);
@@ -222,41 +222,41 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
         </TabsContent>
 
         <TabsContent value="expenses">
-  <Card className="max-h-64 overflow-y-auto">
-    <CardHeader>
-      <CardTitle>Expenses</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {console.log("The trip", tripExpenses)}
-      {tripExpenses.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No expenses yet.</p>
-      ) : (
-        tripExpenses.map((exp) => {
-          // helper fallback if nameOf isn't available in this scope
-          const getName = (idOrObj) =>
-            typeof idOrObj === "string"
-              ? trip.members.find((m) => m._id === idOrObj)?.name || memberById[idOrObj]?.name || "Unknown"
-              : idOrObj?.name || "Unknown";
+          <Card className="max-h-64 overflow-y-auto">
+            <CardHeader>
+              <CardTitle>Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {console.log("The trip", tripExpenses)}
+              {tripExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No expenses yet.</p>
+              ) : (
+                tripExpenses.map((exp) => {
+                  // helper fallback if nameOf isn't available in this scope
+                  const getName = (idOrObj) =>
+                    typeof idOrObj === "string"
+                      ? trip.members.find((m) => m._id === idOrObj)?.name || memberById[idOrObj]?.name || "Unknown"
+                      : idOrObj?.name || "Unknown";
 
-          const paidByName = getName(exp.paidBy);
-          const splitNames = (exp.splitBetween || []).map((m) => getName(m)).join(", ");
+                  const paidByName = getName(exp.paidBy);
+                  const splitNames = (exp.splitBetween || []).map((m) => getName(m)).join(", ");
 
-          return (
-            <div key={exp._id} className="p-2 border rounded mb-2">
-              <div>
-                <strong>{paidByName}</strong> paid ₹{Number(exp.amount).toFixed(2)}
-              </div>
-              <div className="text-sm text-muted-foreground">{exp.description}</div>
-              <div className="text-xs text-gray-500">
-                Split: {splitNames || "—"}
-              </div>
-            </div>
-          );
-        })
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+                  return (
+                    <div key={exp._id} className="p-2 border rounded mb-2">
+                      <div>
+                        <strong>{paidByName}</strong> paid ₹{Number(exp.amount).toFixed(2)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{exp.description}</div>
+                      <div className="text-xs text-gray-500">
+                        Split: {splitNames || "—"}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
 
         <TabsContent value="settlements">
@@ -265,7 +265,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
               <CardTitle>Settlements</CardTitle>
             </CardHeader>
             <CardContent>
-              {!tripSettled && tripSettlements.length === 0 && (
+              {!tripSettled && tripSettlements.length === 0 && user?._id === group?.admin?._id && (
                 <Button onClick={settleTripExpenses} disabled={loadingSettlement}>
                   {loadingSettlement ? "Processing..." : "Settle Expenses"}
                 </Button>
@@ -284,7 +284,7 @@ const SelectedTripView = ({ trip, user, onBack, memberById }) => {
                       onClick={async () => {
                         try {
                           const res = await axios.patch(
-                            `https://split-backend-02lh.onrender.com/api/event/mark-paid/${trip._id}/${s._id}`,
+                            `http://localhost:3000/api/event/mark-paid/${trip._id}/${s._id}`,
                             {},
                             { withCredentials: true }
                           );
@@ -346,16 +346,16 @@ const ViewGroup = () => {
 
     const fetchAll = async () => {
       try {
-        const gRes = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${selectedGroup._id}`, { withCredentials: true });
+        const gRes = await axios.get(`http://localhost:3000/api/groups/${selectedGroup._id}`, { withCredentials: true });
         setGroup(gRes.data);
         setSelectedGroup(gRes.data);
         setGroupMembers(gRes.data.members || []);
 
-        const eRes = await axios.get(`https://split-backend-02lh.onrender.com/api/group/${selectedGroup._id}/events`, { withCredentials: true });
+        const eRes = await axios.get(`http://localhost:3000/api/group/${selectedGroup._id}/events`, { withCredentials: true });
         const events = Array.isArray(eRes.data?.events) ? eRes.data.events : [];
         setTrips(events.map(normalizeEvent));
 
-        const aRes = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
+        const aRes = await axios.get(`http://localhost:3000/api/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
         setActiveTrips(aRes.data.map((e) => e._id));
       } catch (err) {
         toast({ title: "Error loading group data", description: err.message });
@@ -369,14 +369,14 @@ const ViewGroup = () => {
     try {
       if (activeTrips.includes(tripId)) {
         await axios.delete(
-          `https://split-backend-02lh.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
+          `http://localhost:3000/api/groups/${group._id}/events/${tripId}/active`,
           { withCredentials: true }
         );
         setActiveTrips((prev) => prev.filter((id) => id !== tripId));
         toast({ title: "Trip removed from active" });
       } else {
         await axios.post(
-          `https://split-backend-02lh.onrender.com/api/groups/${group._id}/events/${tripId}/active`,
+          `http://localhost:3000/api/groups/${group._id}/events/${tripId}/active`,
           {},
           { withCredentials: true }
         );
@@ -390,8 +390,8 @@ const ViewGroup = () => {
 
   const handleKickMember = async (memberId) => {
     try {
-      await axios.post(`https://split-backend-02lh.onrender.com/api/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
-      const updated = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${group._id}`, { withCredentials: true });
+      await axios.post(`http://localhost:3000/api/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
+      const updated = await axios.get(`http://localhost:3000/api/groups/${group._id}`, { withCredentials: true });
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       toast({ title: "Member removed" });
@@ -403,8 +403,8 @@ const ViewGroup = () => {
   const handleInviteMember = async () => {
     if (!inviteEmail) return;
     try {
-      await axios.post(`https://split-backend-02lh.onrender.com/api/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
-      const updated = await axios.get(`https://split-backend-02lh.onrender.com/api/groups/${group._id}`, { withCredentials: true });
+      await axios.post(`http://localhost:3000/api/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
+      const updated = await axios.get(`http://localhost:3000/api/groups/${group._id}`, { withCredentials: true });
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       setInviteEmail("");
@@ -427,7 +427,7 @@ const ViewGroup = () => {
     }
     try {
       const res = await axios.post(
-        `https://split-backend-02lh.onrender.com/api/group/${group._id}/event`,
+        `http://localhost:3000/api/group/${group._id}/event`,
         { name: tripName, members: tripMembersForCreate },
         { withCredentials: true }
       );
@@ -476,16 +476,18 @@ const ViewGroup = () => {
                 {groupMembers.map((m) => (
                   <div key={m._id} className="flex justify-between items-center mb-2">
                     <span>{m.name}</span>
-                                        {m._id === group.admin?._id ? (
+                    {m._id === group.admin?._id ? (
                       <span className="text-green-600 text-sm">Admin</span>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleKickMember(m._id)}
-                      >
-                        Remove
-                      </Button>
+                      user?._id === group.admin?._id && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleKickMember(m._id)}
+                        >
+                          Remove
+                        </Button>
+                      )
                     )}
                   </div>
                 ))}
@@ -513,16 +515,18 @@ const ViewGroup = () => {
                             onClick={() => selectTrip(t)}
                           >
                             <span>{t.name}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleActiveTrip(t._id);
-                              }}
-                            >
-                              Remove Active
-                            </Button>
+                            {user?._id === group.admin?._id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleActiveTrip(t._id);
+                                }}
+                              >
+                                Remove Active
+                              </Button>
+                            )}
                           </div>
                         ))}
                     </CardContent>
@@ -542,54 +546,59 @@ const ViewGroup = () => {
                         onClick={() => selectTrip(t)}
                       >
                         <span>{t.name}</span>
-                        <Button
-                          size="sm"
-                          variant={activeTrips.includes(t._id) ? "secondary" : "outline"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleActiveTrip(t._id);
-                          }}
-                        >
-                          {activeTrips.includes(t._id) ? "Active" : "Set Active"}
-                        </Button>
+                        {user?._id === group.admin?._id && (
+                          <Button
+                            size="sm"
+                            variant={activeTrips.includes(t._id) ? "secondary" : "outline"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleActiveTrip(t._id);
+                            }}
+                          >
+                            {activeTrips.includes(t._id) ? "Active" : "Set Active"}
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </CardContent>
                 </Card>
 
                 {/* Create Trip Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Create New Trip</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Input
-                      placeholder="Trip Name"
-                      value={tripName}
-                      onChange={(e) => setTripName(e.target.value)}
-                    />
-                    <div>
-                      <Label>Select Members</Label>
-                      <div className="flex flex-col max-h-32 overflow-y-auto border rounded p-2">
-                        {groupMembers.map((m) => (
-                          <div key={m._id} className="flex items-center gap-2">
-                            <Checkbox
-                              checked={tripMembersForCreate.includes(m._id)}
-                              onCheckedChange={() => toggleTripMemberForCreate(m._id)}
-                            />
-                            <span>{m.name}</span>
-                          </div>
-                        ))}
+                {user?._id === group.admin?._id && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Create New Trip</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        placeholder="Trip Name"
+                        value={tripName}
+                        onChange={(e) => setTripName(e.target.value)}
+                      />
+                      <div>
+                        <Label>Select Members</Label>
+                        <div className="flex flex-col max-h-32 overflow-y-auto border rounded p-2">
+                          {groupMembers.map((m) => (
+                            <div key={m._id} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={tripMembersForCreate.includes(m._id)}
+                                onCheckedChange={() => toggleTripMemberForCreate(m._id)}
+                              />
+                              <span>{m.name}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <Button onClick={createTrip}>Create Trip</Button>
-                  </CardContent>
-                </Card>
+                      <Button onClick={createTrip}>Create Trip</Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             ) : (
               <SelectedTripView
                 trip={selectedTrip}
                 user={user}
+                group={group}
                 memberById={memberById}
                 onBack={() => setSelectedTrip(null)}
               />

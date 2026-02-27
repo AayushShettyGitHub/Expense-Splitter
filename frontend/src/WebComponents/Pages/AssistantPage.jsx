@@ -3,19 +3,13 @@ import Layout from "@/WebComponents/Pages/Layout";
 import Assistant from "@/WebComponents/SideBarComponents/Assistant";
 
 const AssistantPage = () => {
-  const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
+  const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem("assistant-chat");
-    if (saved) {
-      setMessages(JSON.parse(saved));
-    }
-  }, []);
+    return saved ? JSON.parse(saved) : [{ role: "assistant", content: "Hello! How can I help you?" }];
+  });
 
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem("assistant-chat", JSON.stringify(messages));
-    }
+    localStorage.setItem("assistant-chat", JSON.stringify(messages));
   }, [messages]);
 
   return (

@@ -23,7 +23,7 @@ export default function Profile() {
 
   useEffect(() => {
     axios
-      .get("https://split-backend-02lh.onrender.com/api/getUser", { withCredentials: true })
+      .get("http://localhost:3000/api/getUser", { withCredentials: true })
       .then((res) => {
         setUser(res.data);
         setFormData({
@@ -57,7 +57,7 @@ export default function Profile() {
     }
 
     axios
-      .put("https://split-backend-02lh.onrender.com/api/update", data, {
+      .put("http://localhost:3000/api/update", data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       })

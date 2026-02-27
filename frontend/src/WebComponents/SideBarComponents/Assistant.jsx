@@ -6,12 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const Assistant = () => {
+const Assistant = ({ messages, setMessages }) => {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hello! How can I help you?" },
-  ]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const chatRef = useRef(null);
@@ -64,7 +61,7 @@ const Assistant = () => {
 
     try {
       const { data: intentResponse } = await axios.post(
-        "https://split-backend-02lh.onrender.com/api/ask",
+        "http://localhost:3000/api/ask",
         { query },
         { withCredentials: true }
       );
@@ -128,7 +125,7 @@ const Assistant = () => {
           };
 
           try {
-            await axios.post("https://split-backend-02lh.onrender.com/api/expenses", expensePayload, {
+            await axios.post("http://localhost:3000/api/expenses", expensePayload, {
               withCredentials: true,
             });
             toast({ title: "Expense added successfully." });
@@ -161,8 +158,7 @@ const Assistant = () => {
 
             try {
               const res = await axios.get(
-                `https://split-backend-02lh.onrender.com/api/get?month=${
-                  new Date(`${normalizedMonth} 1`).getMonth() + 1
+                `http://localhost:3000/api/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1
                 }&year=${numericYear}`,
                 { withCredentials: true }
               );
@@ -174,7 +170,7 @@ const Assistant = () => {
 
             if (budgetExists && budgetId) {
               await axios.put(
-                `https://split-backend-02lh.onrender.com/api/update/${budgetId}`,
+                `http://localhost:3000/api/update/${budgetId}`,
                 { amount },
                 { withCredentials: true }
               );
@@ -183,7 +179,7 @@ const Assistant = () => {
               );
             } else {
               await axios.post(
-                `https://split-backend-02lh.onrender.com/api/add`,
+                `http://localhost:3000/api/add`,
                 {
                   amount,
                   month: new Date(`${normalizedMonth} 1`).getMonth() + 1,
@@ -218,7 +214,7 @@ const Assistant = () => {
 
           try {
             await axios.post(
-              "https://split-backend-02lh.onrender.com/api/create",
+              "http://localhost:3000/api/create",
               { name: groupName, invitees },
               { withCredentials: true }
             );
@@ -240,7 +236,7 @@ const Assistant = () => {
           }
 
           try {
-            const { data: userRes } = await axios.get("https://split-backend-02lh.onrender.com/api/getUser", {
+            const { data: userRes } = await axios.get("http://localhost:3000/api/getUser", {
               withCredentials: true,
             });
 
@@ -259,7 +255,7 @@ const Assistant = () => {
             let splitBetween = dataSplit;
             if (dataSplit === "all_members" || !dataSplit) {
               const { data: eventRes } = await axios.get(
-                `https://split-backend-02lh.onrender.com/api/event/${eventId}`,
+                `http://localhost:3000/api/event/${eventId}`,
                 { withCredentials: true }
               );
               splitBetween = eventRes?.members || [];
@@ -277,7 +273,7 @@ const Assistant = () => {
                 : date || new Date().toISOString().slice(0, 10);
 
             await axios.post(
-              `https://split-backend-02lh.onrender.com/api/event/${eventId}/expense`,
+              `http://localhost:3000/api/event/${eventId}/expense`,
               {
                 description,
                 amount: parseFloat(amount),
@@ -324,11 +320,10 @@ const Assistant = () => {
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`px-3 py-2 rounded-xl text-sm max-w-[75%] ${
-                msg.role === "user"
+              className={`px-3 py-2 rounded-xl text-sm max-w-[75%] ${msg.role === "user"
                   ? "bg-blue-600 text-white rounded-br-none"
                   : "bg-muted text-foreground rounded-bl-none"
-              }`}
+                }`}
             >
               {msg.content}
             </div>

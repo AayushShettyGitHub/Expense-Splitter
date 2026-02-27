@@ -20,7 +20,7 @@ const MyGroups = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get("https://split-backend-02lh.onrender.com/api/my-groups", {
+      const res = await axios.get("http://localhost:3000/api/my-groups", {
         withCredentials: true,
       });
       setGroups(res.data);

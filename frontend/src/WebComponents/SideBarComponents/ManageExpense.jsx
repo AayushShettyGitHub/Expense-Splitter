@@ -1,17 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const AddExpenseForm = () => {
+  const [activeTab, setActiveTab] = useState("regular"); // "regular" or "recurring"
   const [form, setForm] = useState({
     amount: "",
     category: "",
     date: "",
     description: "",
     paymentMode: "Cash",
+    recurrenceType: "monthly",
+    endDate: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [recurringExpenses, setRecurringExpenses] = useState([]);
+
+  // Fetch recurring expenses when the tab is active
+  useEffect(() => {
+    if (activeTab === "recurring") {
+      fetchRecurringExpenses();
+    }
+  }, [activeTab]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -23,19 +34,30 @@ const AddExpenseForm = () => {
     setMessage("");
 
     try {
-      await axios.post(
-        "https://split-backend-02lh.onrender.com/api/expenses",
-        { ...form },
-        { withCredentials: true }
+      const url =
+        activeTab === "regular"
+          ? "http://localhost:3000/api/expenses"
+          : "http://localhost:3000/api/recurring";
+
+      await axios.post(url, { ...form }, { withCredentials: true });
+
+      setMessage(
+        activeTab === "regular"
+          ? "Expense added successfully."
+          : "Recurring expense added successfully."
       );
-      setMessage("Expense added successfully.");
+
       setForm({
         amount: "",
         category: "",
         date: "",
         description: "",
         paymentMode: "Cash",
+        recurrenceType: "monthly",
+        endDate: "",
       });
+
+      if (activeTab === "recurring") fetchRecurringExpenses();
     } catch (err) {
       setMessage(err.response?.data?.message || "Error adding expense");
     } finally {
@@ -43,10 +65,72 @@ const AddExpenseForm = () => {
     }
   };
 
+  // Fetch recurring expenses
+  const fetchRecurringExpenses = async () => {
+    try {
+      const res = await axios.get("http://localhost:3000/api/recurring", {
+        withCredentials: true,
+      });
+      setRecurringExpenses(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Toggle recurring expense
+  const toggleRecurring = async (id) => {
+    try {
+      await axios.patch(`http://localhost:3000/api/recurring/${id}/toggle`, {}, { withCredentials: true });
+      fetchRecurringExpenses();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Delete recurring expense
+  const deleteRecurring = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/recurring/${id}`, { withCredentials: true });
+      fetchRecurringExpenses();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto bg-white dark:bg-gray-900 p-6 shadow-md rounded-md mt-8 text-gray-900 dark:text-gray-100">
-      <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
+      <h2 className="text-xl font-semibold mb-4 text-center">
+        {activeTab === "regular" ? "Add Expense" : "Add Recurring Expense"}
+      </h2>
+
+      {/* Tabs */}
+      <div className="flex mb-4 border-b dark:border-gray-700">
+        <button
+          type="button"
+          onClick={() => setActiveTab("regular")}
+          className={`flex-1 py-2 text-center font-medium ${
+            activeTab === "regular"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-500 dark:text-gray-400"
+          }`}
+        >
+          Regular
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("recurring")}
+          className={`flex-1 py-2 text-center font-medium ${
+            activeTab === "recurring"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-500 dark:text-gray-400"
+          }`}
+        >
+          Recurring
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Common fields */}
         <div>
           <label className="block mb-1">Amount</label>
           <input
@@ -54,7 +138,7 @@ const AddExpenseForm = () => {
             name="amount"
             value={form.amount}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
             required
           />
         </div>
@@ -65,7 +149,7 @@ const AddExpenseForm = () => {
             name="category"
             value={form.category}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
             required
           >
             <option value="">Select</option>
@@ -86,7 +170,7 @@ const AddExpenseForm = () => {
             name="date"
             value={form.date}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
           />
         </div>
 
@@ -97,7 +181,7 @@ const AddExpenseForm = () => {
             name="description"
             value={form.description}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
           />
         </div>
 
@@ -107,7 +191,7 @@ const AddExpenseForm = () => {
             name="paymentMode"
             value={form.paymentMode}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
           >
             <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
@@ -117,12 +201,47 @@ const AddExpenseForm = () => {
           </select>
         </div>
 
+        {/* Recurring-only fields */}
+        {activeTab === "recurring" && (
+          <>
+            <div>
+              <label className="block mb-1">Recurrence Type</label>
+              <select
+                name="recurrenceType"
+                value={form.recurrenceType}
+                onChange={handleChange}
+                className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-1">End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                value={form.endDate}
+                onChange={handleChange}
+                className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800 dark:border-gray-700"
+              />
+            </div>
+          </>
+        )}
+
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-70"
           disabled={loading}
         >
-          {loading ? "Adding..." : "Add Expense"}
+          {loading
+            ? "Adding..."
+            : activeTab === "regular"
+            ? "Add Expense"
+            : "Add Recurring Expense"}
         </button>
 
         {message && (
@@ -131,6 +250,39 @@ const AddExpenseForm = () => {
           </p>
         )}
       </form>
+
+      {/* Recurring Expenses List */}
+      {activeTab === "recurring" && recurringExpenses.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-2">Recurring Expenses</h3>
+          <ul className="space-y-2">
+            {recurringExpenses.map((expense) => (
+              <li
+                key={expense._id}
+                className="flex justify-between items-center border p-2 rounded"
+              >
+                <div>
+                  {expense.description || expense.category} - ₹{expense.amount} ({expense.recurrenceType})
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleRecurring(expense._id)}
+                    className="bg-yellow-500 text-white px-2 py-1 rounded"
+                  >
+                    {expense.isActive ? "Pause" : "Resume"}
+                  </button>
+                  <button
+                    onClick={() => deleteRecurring(expense._id)}
+                    className="bg-red-600 text-white px-2 py-1 rounded"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
