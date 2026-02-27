@@ -1,4 +1,3 @@
-```javascript
 require('dotenv').config();
 const connectToDatabase = require("./config/database.js");
 const express = require('express');
@@ -10,8 +9,8 @@ const Routes = require('./routes/appRoutes.js');
 
 
 const app = express();
-const PORT = process.env.PORT || 3000; 
-const MONGO_URI = process.env.MONGO_URI; 
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
 
 app.use(cookieParser());
 
@@ -25,13 +24,13 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json()); 
+app.use(express.json());
 
 app.use("/api", Routes);
 
 
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${ PORT } `);
+  console.log(`Server running on port ${PORT} `);
   connectToDatabase();
 });
