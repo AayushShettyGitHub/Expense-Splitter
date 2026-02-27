@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 
 const categories = ["Food", "Travel", "Shopping", "Bills", "Health", "Settlement", "Other"];
@@ -26,9 +26,8 @@ const ViewExpense = () => {
         queryParams.append("category", filters.category);
       }
 
-      const res = await axios.get(
-        `http://localhost:3000/api/getExpenses?${queryParams.toString()}`,
-        { withCredentials: true }
+      const res = await api.get(
+        `/getExpenses?${queryParams.toString()}`
       );
 
       setExpenses(res.data);

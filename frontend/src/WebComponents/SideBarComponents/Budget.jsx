@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   Card,
   CardHeader,
@@ -26,8 +26,8 @@ const months = ["",
 const Budget = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = (new Date().getMonth() + 1).toString();
-; 
- 
+  ;
+
 
   const [month, setMonth] = useState(currentMonth.toString());
   const [year, setYear] = useState(currentYear.toString());
@@ -37,9 +37,8 @@ const Budget = () => {
 
   const fetchBudget = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:3000/api/get?month=${month}&year=${year}`,
-        { withCredentials: true }
+      const res = await api.get(
+        `/get?month=${month}&year=${year}`
       );
       setBudget(res.data);
       setAmount(res.data.amount);
@@ -51,9 +50,8 @@ const Budget = () => {
 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:3000/api/getExpenses?month=${month}&year=${year}`,
-        { withCredentials: true }
+      const res = await api.get(
+        `/getExpenses?month=${month}&year=${year}`
       );
       const total = res.data.reduce((acc, e) => acc + e.amount, 0);
       setExpenses(total);
@@ -70,16 +68,14 @@ const Budget = () => {
   const handleSubmit = async () => {
     try {
       if (budget) {
-        await axios.put(
-          `http://localhost:3000/api/update/${budget._id}`,
-          { amount },
-          { withCredentials: true }
+        await api.put(
+          `/update/${budget._id}`,
+          { amount }
         );
       } else {
-        await axios.post(
-          "http://localhost:3000/api/add",
-          { amount, month, year },
-          { withCredentials: true }
+        await api.post(
+          "/add",
+          { amount, month, year }
         );
       }
       fetchBudget();
@@ -90,9 +86,8 @@ const Budget = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(
-        `http://localhost:3000/api/delete/${budget._id}`,
-        { withCredentials: true }
+      await api.delete(
+        `/delete/${budget._id}`
       );
       setBudget(null);
       setAmount("");

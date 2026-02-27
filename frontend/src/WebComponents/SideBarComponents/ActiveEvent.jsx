@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Target, Activity, ChevronRight, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,9 +12,8 @@ const ActiveEvent = ({ onTargetSelect }) => {
   useEffect(() => {
     const fetchActiveEvents = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:3000/api/user/active-events",
-          { withCredentials: true }
+        const res = await api.get(
+          "/user/active-events"
         );
         setEvents(res.data);
 
@@ -31,10 +30,9 @@ const ActiveEvent = ({ onTargetSelect }) => {
 
   const handleSelectTarget = async (event) => {
     try {
-      const res = await axios.patch(
-        `http://localhost:3000/api/target/${event._id}`,
-        {},
-        { withCredentials: true }
+      const res = await api.patch(
+        `/target/${event._id}`,
+        {}
       );
 
       const newTarget = res.data.targetEvent || null;

@@ -1,7 +1,5 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   Card,
   CardHeader,
@@ -20,9 +18,7 @@ const MyGroups = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/my-groups", {
-        withCredentials: true,
-      });
+      const res = await api.get("/my-groups");
       setGroups(res.data);
     } catch (err) {
       console.error("Failed to fetch groups", err);

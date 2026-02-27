@@ -27,7 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-import axios from "axios"
+import api from "@/lib/api"
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 
@@ -46,10 +46,8 @@ export function NavUser() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/getUser", {
-          withCredentials: true,
-        })
-        setUser(res.data) 
+        const res = await api.get("/getUser")
+        setUser(res.data)
         console.log("User fetched:", res.data)
       } catch (error) {
         console.error("Failed to fetch user:", error)
@@ -60,8 +58,8 @@ export function NavUser() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true })
-      navigate("/login") 
+      await api.post("/logout", {})
+      navigate("/login")
     } catch (error) {
       console.error("Logout failed:", error)
     }

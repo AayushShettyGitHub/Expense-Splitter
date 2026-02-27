@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "@/lib/api"; // Assuming '@/lib/api' provides the 'api' instance
 
 function ResetPass() {
   const [email, setEmail] = useState("");
@@ -12,7 +12,9 @@ function ResetPass() {
   const handleReset = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:8082/auth/reset-password", {
+      // The original code already uses 'api.post'.
+      // The instruction implies ensuring 'api' is from '@/lib/api'.
+      const res = await api.post("/reset-password", {
         email,
         newPassword,
       });
@@ -36,7 +38,7 @@ function ResetPass() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-         
+
           <input
             type="password"
             placeholder="New Password"

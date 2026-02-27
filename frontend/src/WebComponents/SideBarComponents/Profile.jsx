@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,11 +19,9 @@ export default function Profile() {
   });
   const [profileImage, setProfileImage] = useState(null);
 
-  axios.defaults.withCredentials = true;
-
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/getUser", { withCredentials: true })
+    api
+      .get("/getUser")
       .then((res) => {
         setUser(res.data);
         setFormData({
@@ -56,9 +54,8 @@ export default function Profile() {
       data.append("profileImage", profileImage);
     }
 
-    axios
-      .put("http://localhost:3000/api/update", data, {
-        withCredentials: true,
+    api
+      .put("/update", data, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       .then((res) => {

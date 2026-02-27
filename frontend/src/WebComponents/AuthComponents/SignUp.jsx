@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export function Login() {
       return setError("Passwords do not match");
     }
     try {
-      const res = await axios.post("/auth/register", formData);
+      const res = await api.post("/register", formData);
       console.log("Signed up:", res.data);
       setIsSignUp(false);
     } catch (err) {
@@ -54,10 +54,9 @@ export function Login() {
     setError("");
     console.log("Submitting login:", formData.email, formData.password);
     try {
-      const res = await axios.post(
-        "/auth/login",
-        { email: formData.email, password: formData.password },
-        { withCredentials: true }
+      const res = await api.post(
+        "/login",
+        { email: formData.email, password: formData.password }
       );
       Cookies.set("jwt", res.data.token, { expires: 7 });
       navigate("/homepage");

@@ -1,7 +1,5 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -40,8 +38,8 @@ const PersonalDashboard = () => {
   const fetchData = async () => {
     try {
       const [budgetRes, expenseRes] = await Promise.all([
-        axios.get(`http://localhost:3000/api/get?month=${month}&year=${year}`, { withCredentials: true }),
-        axios.get(`http://localhost:3000/api/getExpenses?month=${month}&year=${year}`, { withCredentials: true }),
+        api.get(`/get?month=${month}&year=${year}`),
+        api.get(`/getExpenses?month=${month}&year=${year}`),
       ]);
 
       setBudget(budgetRes.data);

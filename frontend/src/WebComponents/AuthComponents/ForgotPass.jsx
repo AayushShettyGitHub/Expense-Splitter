@@ -1,11 +1,11 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 function ForgotPass() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState("email"); 
+  const [step, setStep] = useState("email");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ function ForgotPass() {
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:8082/auth/forgot-password", { email });
+      const res = await api.post("/forgot-password", { email });
       setMessage(res.data.message);
       setStep("otp");
       setError("");
@@ -25,10 +25,10 @@ function ForgotPass() {
   const handleOtpVerify = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:8082/auth/verify-otp", { email, otp });
+      const res = await api.post("/verify-otp", { email, otp });
       setMessage(res.data.message);
       setError("");
-      
+
       navigate("/reset-password", { state: { email } });
     } catch (err) {
       setError(err.response?.data?.error || "Invalid OTP");

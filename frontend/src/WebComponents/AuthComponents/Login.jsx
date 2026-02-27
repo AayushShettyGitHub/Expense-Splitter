@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
@@ -58,8 +58,8 @@ export function Login() {
       return setError("Passwords do not match");
     }
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/register",
+      const res = await api.post(
+        "/register",
         formData
       );
       console.log("Signed up:", res.data);
@@ -76,13 +76,13 @@ export function Login() {
     e.preventDefault();
     setError("");
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/login",
+      const res = await api.post(
+        "/login",
         {
           email: formData.email,
           password: formData.password,
         },
-      
+
       );
       Cookies.set("jwt", res.data.token, { expires: 7 });
       navigate("/homepage");
@@ -94,7 +94,7 @@ export function Login() {
 
   const handleGoogleSuccess = async (response) => {
     try {
-      const res = await axios.post("http://localhost:3000/api/google", {
+      const res = await api.post("/google", {
         googleToken: response.credential,
       });
       Cookies.set("jwt", res.data.token, { expires: 7 });

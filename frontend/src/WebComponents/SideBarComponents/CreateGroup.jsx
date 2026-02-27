@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import api from "@/lib/api";
 
 const CreateGroup = () => {
   const { toast } = useToast();
@@ -41,10 +41,9 @@ const CreateGroup = () => {
 
     setLoading(true);
     try {
-      await axios.post(
-        "http://localhost:3000/api/create",
-        { name: groupName, invitees },
-        { withCredentials: true }
+      await api.post(
+        "/create",
+        { name: groupName, invitees }
       );
       toast({ title: "Group created!", description: `${groupName} has been created successfully.` });
 

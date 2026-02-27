@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   Card,
   CardHeader,
@@ -17,9 +17,7 @@ const Invites = () => {
 
   const fetchInvites = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/my-groups", {
-        withCredentials: true,
-      });
+      const res = await api.get("/my-groups");
       const pending = res.data.filter(group => group.isPendingInvite);
       setInvites(pending);
     } catch (err) {
@@ -29,10 +27,9 @@ const Invites = () => {
 
   const handleAccept = async (groupId) => {
     try {
-      await axios.post(
-        `http://localhost:3000/api/accept-invite/${groupId}`,
-        {},
-        { withCredentials: true }
+      await api.post(
+        `/accept-invite/${groupId}`,
+        {}
       );
       toast({ title: "Invite accepted!" });
       navigate("/viewgroup");

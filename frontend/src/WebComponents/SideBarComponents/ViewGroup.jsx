@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +14,8 @@ import { useSelectedGroup } from "@/context/SelectedGroupContext";
 const useCurrentUser = () => {
   const [user, setUser] = useState(null);
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/getUser", { withCredentials: true })
+    api
+      .get("/getUser")
       .then((res) => setUser(res.data))
       .catch(console.error);
   }, []);
@@ -62,17 +60,15 @@ const SelectedTripView = ({ trip, user, group, onBack, memberById }) => {
   useEffect(() => {
     const fetchExpensesAndSettlements = async () => {
       try {
-        const expRes = await axios.get(
-          `http://localhost:3000/api/event/${trip._id}/expenses`,
-          { withCredentials: true }
+        const expRes = await api.get(
+          `/event/${trip._id}/expenses`
         );
         console.log("Fetched expenses:", expRes.data);
         setTripExpenses(expRes.data || []);
         calculateTripBalances(expRes.data || []);
 
-        const setRes = await axios.get(
-          `http://localhost:3000/api/event/settlements/${trip._id}`,
-          { withCredentials: true }
+        const setRes = await api.get(
+          `/event/settlements/${trip._id}`
         );
         setTripSettlements(setRes.data?.settlements || []);
         setTripSettled(!!setRes.data?.settlementEnded);
@@ -98,20 +94,18 @@ const SelectedTripView = ({ trip, user, group, onBack, memberById }) => {
       return;
     }
     try {
-      await axios.post(
-        `http://localhost:3000/api/event/${trip._id}/expense`,
+      await api.post(
+        `/event/${trip._id}/expense`,
         {
           amount: parseFloat(expenseAmount),
           description: expenseDesc,
           paidBy: expensePaidBy,
           splitBetween: expenseSplitWith,
-        },
-        { withCredentials: true }
+        }
       );
 
-      const updated = await axios.get(
-        `http://localhost:3000/api/event/${trip._id}/expenses`,
-        { withCredentials: true }
+      const updated = await api.get(
+        `/event/${trip._id}/expenses`
       );
       setTripExpenses(updated.data || []);
       calculateTripBalances(updated.data || []);
@@ -129,13 +123,11 @@ const SelectedTripView = ({ trip, user, group, onBack, memberById }) => {
   const settleTripExpenses = async () => {
     setLoadingSettlement(true);
     try {
-      await axios.get(
-        `http://localhost:3000/api/event/${trip._id}/settlements`,
-        { withCredentials: true }
+      await api.get(
+        `/event/${trip._id}/settlements`
       );
-      const res = await axios.get(
-        `http://localhost:3000/api/event/settlements/${trip._id}`,
-        { withCredentials: true }
+      const res = await api.get(
+        `/event/settlements/${trip._id}`
       );
       setTripSettlements(res.data?.settlements || []);
       setTripSettled(!!res.data?.settlementEnded);
@@ -283,10 +275,9 @@ const SelectedTripView = ({ trip, user, group, onBack, memberById }) => {
                       size="sm"
                       onClick={async () => {
                         try {
-                          const res = await axios.patch(
-                            `http://localhost:3000/api/event/mark-paid/${trip._id}/${s._id}`,
-                            {},
-                            { withCredentials: true }
+                          const res = await api.patch(
+                            `/event/mark-paid/${trip._id}/${s._id}`,
+                            {}
                           );
                           toast({ title: res.data?.settlementEnded ? "All settled" : "Marked as paid" });
                         } catch (err) {
@@ -346,16 +337,16 @@ const ViewGroup = () => {
 
     const fetchAll = async () => {
       try {
-        const gRes = await axios.get(`http://localhost:3000/api/groups/${selectedGroup._id}`, { withCredentials: true });
+        const gRes = await api.get(`/groups/${selectedGroup._id}`);
         setGroup(gRes.data);
         setSelectedGroup(gRes.data);
         setGroupMembers(gRes.data.members || []);
 
-        const eRes = await axios.get(`http://localhost:3000/api/group/${selectedGroup._id}/events`, { withCredentials: true });
+        const eRes = await api.get(`/group/${selectedGroup._id}/events`);
         const events = Array.isArray(eRes.data?.events) ? eRes.data.events : [];
         setTrips(events.map(normalizeEvent));
 
-        const aRes = await axios.get(`http://localhost:3000/api/groups/${selectedGroup._id}/events/active`, { withCredentials: true });
+        const aRes = await api.get(`/groups/${selectedGroup._id}/events/active`);
         setActiveTrips(aRes.data.map((e) => e._id));
       } catch (err) {
         toast({ title: "Error loading group data", description: err.message });
@@ -368,17 +359,15 @@ const ViewGroup = () => {
   const toggleActiveTrip = async (tripId) => {
     try {
       if (activeTrips.includes(tripId)) {
-        await axios.delete(
-          `http://localhost:3000/api/groups/${group._id}/events/${tripId}/active`,
-          { withCredentials: true }
+        await api.delete(
+          `/groups/${group._id}/events/${tripId}/active`
         );
         setActiveTrips((prev) => prev.filter((id) => id !== tripId));
         toast({ title: "Trip removed from active" });
       } else {
-        await axios.post(
-          `http://localhost:3000/api/groups/${group._id}/events/${tripId}/active`,
-          {},
-          { withCredentials: true }
+        await api.post(
+          `/groups/${group._id}/events/${tripId}/active`,
+          {}
         );
         setActiveTrips((prev) => [...prev, tripId]);
         toast({ title: "Trip set as active" });
@@ -390,8 +379,8 @@ const ViewGroup = () => {
 
   const handleKickMember = async (memberId) => {
     try {
-      await axios.post(`http://localhost:3000/api/kick/${group._id}/${memberId}`, {}, { withCredentials: true });
-      const updated = await axios.get(`http://localhost:3000/api/groups/${group._id}`, { withCredentials: true });
+      await api.post(`/kick/${group._id}/${memberId}`, {});
+      const updated = await api.get(`/groups/${group._id}`);
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       toast({ title: "Member removed" });
@@ -403,8 +392,8 @@ const ViewGroup = () => {
   const handleInviteMember = async () => {
     if (!inviteEmail) return;
     try {
-      await axios.post(`http://localhost:3000/api/send-invite/${group._id}`, { email: inviteEmail }, { withCredentials: true });
-      const updated = await axios.get(`http://localhost:3000/api/groups/${group._id}`, { withCredentials: true });
+      await api.post(`/send-invite/${group._id}`, { email: inviteEmail });
+      const updated = await api.get(`/groups/${group._id}`);
       setGroup(updated.data);
       setGroupMembers(updated.data.members || []);
       setInviteEmail("");
@@ -426,10 +415,9 @@ const ViewGroup = () => {
       return;
     }
     try {
-      const res = await axios.post(
-        `http://localhost:3000/api/group/${group._id}/event`,
-        { name: tripName, members: tripMembersForCreate },
-        { withCredentials: true }
+      const res = await api.post(
+        `/group/${group._id}/event`,
+        { name: tripName, members: tripMembersForCreate }
       );
       const createdRaw = res.data?.event;
       if (createdRaw) setTrips((prev) => [...prev, normalizeEvent(createdRaw)]);

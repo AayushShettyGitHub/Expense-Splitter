@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 
 const AddExpenseForm = () => {
   const [activeTab, setActiveTab] = useState("regular"); // "regular" or "recurring"
@@ -36,10 +36,10 @@ const AddExpenseForm = () => {
     try {
       const url =
         activeTab === "regular"
-          ? "http://localhost:3000/api/expenses"
-          : "http://localhost:3000/api/recurring";
+          ? "/expenses"
+          : "/recurring";
 
-      await axios.post(url, { ...form }, { withCredentials: true });
+      await api.post(url, { ...form });
 
       setMessage(
         activeTab === "regular"
@@ -68,9 +68,7 @@ const AddExpenseForm = () => {
   // Fetch recurring expenses
   const fetchRecurringExpenses = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/recurring", {
-        withCredentials: true,
-      });
+      const res = await api.get("/recurring");
       setRecurringExpenses(res.data);
     } catch (err) {
       console.error(err);
@@ -80,7 +78,7 @@ const AddExpenseForm = () => {
   // Toggle recurring expense
   const toggleRecurring = async (id) => {
     try {
-      await axios.patch(`http://localhost:3000/api/recurring/${id}/toggle`, {}, { withCredentials: true });
+      await api.patch(`/recurring/${id}/toggle`, {});
       fetchRecurringExpenses();
     } catch (err) {
       console.error(err);
@@ -90,7 +88,7 @@ const AddExpenseForm = () => {
   // Delete recurring expense
   const deleteRecurring = async (id) => {
     try {
-      await axios.delete(`http://localhost:3000/api/recurring/${id}`, { withCredentials: true });
+      await api.delete(`/recurring/${id}`);
       fetchRecurringExpenses();
     } catch (err) {
       console.error(err);
@@ -108,22 +106,20 @@ const AddExpenseForm = () => {
         <button
           type="button"
           onClick={() => setActiveTab("regular")}
-          className={`flex-1 py-2 text-center font-medium ${
-            activeTab === "regular"
+          className={`flex-1 py-2 text-center font-medium ${activeTab === "regular"
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-500 dark:text-gray-400"
-          }`}
+            }`}
         >
           Regular
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("recurring")}
-          className={`flex-1 py-2 text-center font-medium ${
-            activeTab === "recurring"
+          className={`flex-1 py-2 text-center font-medium ${activeTab === "recurring"
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-500 dark:text-gray-400"
-          }`}
+            }`}
         >
           Recurring
         </button>
@@ -240,8 +236,8 @@ const AddExpenseForm = () => {
           {loading
             ? "Adding..."
             : activeTab === "regular"
-            ? "Add Expense"
-            : "Add Recurring Expense"}
+              ? "Add Expense"
+              : "Add Recurring Expense"}
         </button>
 
         {message && (

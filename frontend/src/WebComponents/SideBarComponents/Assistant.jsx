@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -60,10 +60,9 @@ const Assistant = ({ messages, setMessages }) => {
     setLoading(true);
 
     try {
-      const { data: intentResponse } = await axios.post(
-        "http://localhost:3000/api/ask",
-        { query },
-        { withCredentials: true }
+      const { data: intentResponse } = await api.post(
+        "/ask",
+        { query }
       );
 
       await handleIntent(intentResponse);
@@ -125,9 +124,7 @@ const Assistant = ({ messages, setMessages }) => {
           };
 
           try {
-            await axios.post("http://localhost:3000/api/expenses", expensePayload, {
-              withCredentials: true,
-            });
+            await api.post("/expenses", expensePayload);
             toast({ title: "Expense added successfully." });
             addAssistantMessage("Expense added successfully.");
           } catch (err) {
@@ -157,10 +154,9 @@ const Assistant = ({ messages, setMessages }) => {
             let budgetId = null;
 
             try {
-              const res = await axios.get(
-                `http://localhost:3000/api/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1
-                }&year=${numericYear}`,
-                { withCredentials: true }
+              const res = await api.get(
+                `/get?month=${new Date(`${normalizedMonth} 1`).getMonth() + 1
+                }&year=${numericYear}`
               );
               budgetExists = true;
               budgetId = res.data._id;
@@ -169,23 +165,21 @@ const Assistant = ({ messages, setMessages }) => {
             }
 
             if (budgetExists && budgetId) {
-              await axios.put(
-                `http://localhost:3000/api/update/${budgetId}`,
-                { amount },
-                { withCredentials: true }
+              await api.put(
+                `/update/${budgetId}`,
+                { amount }
               );
               addAssistantMessage(
                 `Budget updated to ₹${amount} for ${normalizedMonth} ${numericYear}.`
               );
             } else {
-              await axios.post(
-                `http://localhost:3000/api/add`,
+              await api.post(
+                "/add",
                 {
                   amount,
                   month: new Date(`${normalizedMonth} 1`).getMonth() + 1,
                   year: numericYear,
-                },
-                { withCredentials: true }
+                }
               );
               addAssistantMessage(
                 `Budget set to ₹${amount} for ${normalizedMonth} ${numericYear}.`
@@ -213,10 +207,9 @@ const Assistant = ({ messages, setMessages }) => {
           }
 
           try {
-            await axios.post(
-              "http://localhost:3000/api/create",
-              { name: groupName, invitees },
-              { withCredentials: true }
+            await api.post(
+              "/create",
+              { name: groupName, invitees }
             );
             addAssistantMessage(`Group "${groupName}" created with ${invitees.length} member(s).`);
             toast({ title: `Group "${groupName}" created successfully!` });
@@ -236,9 +229,7 @@ const Assistant = ({ messages, setMessages }) => {
           }
 
           try {
-            const { data: userRes } = await axios.get("http://localhost:3000/api/getUser", {
-              withCredentials: true,
-            });
+            const { data: userRes } = await api.get("/getUser");
 
             const eventId = userRes?.targetEvent;
             if (!eventId) {
@@ -254,9 +245,8 @@ const Assistant = ({ messages, setMessages }) => {
 
             let splitBetween = dataSplit;
             if (dataSplit === "all_members" || !dataSplit) {
-              const { data: eventRes } = await axios.get(
-                `http://localhost:3000/api/event/${eventId}`,
-                { withCredentials: true }
+              const { data: eventRes } = await api.get(
+                `/event/${eventId}`
               );
               splitBetween = eventRes?.members || [];
             }
@@ -280,8 +270,7 @@ const Assistant = ({ messages, setMessages }) => {
                 paidBy,
                 splitBetween,
                 date: formattedDate,
-              },
-              { withCredentials: true }
+              }
             );
 
             addAssistantMessage(
@@ -321,8 +310,8 @@ const Assistant = ({ messages, setMessages }) => {
           >
             <div
               className={`px-3 py-2 rounded-xl text-sm max-w-[75%] ${msg.role === "user"
-                  ? "bg-blue-600 text-white rounded-br-none"
-                  : "bg-muted text-foreground rounded-bl-none"
+                ? "bg-blue-600 text-white rounded-br-none"
+                : "bg-muted text-foreground rounded-bl-none"
                 }`}
             >
               {msg.content}
