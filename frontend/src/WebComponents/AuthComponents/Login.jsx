@@ -85,6 +85,14 @@ export function Login() {
 
       );
       Cookies.set("jwt", res.data.token, { expires: 7 });
+      
+      // Clear all assistant chats to ensure privacy for the new login
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("assistant-chat-")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       navigate("/homepage");
     } catch (err) {
       console.error("Login error:", err.response || err);
@@ -98,6 +106,14 @@ export function Login() {
         googleToken: response.credential,
       });
       Cookies.set("jwt", res.data.token, { expires: 7 });
+
+      // Clear all assistant chats to ensure privacy for the new login
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("assistant-chat-")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       navigate("/homepage");
     } catch (err) {
       console.error("Google login failed:", err);

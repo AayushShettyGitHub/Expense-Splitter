@@ -178,9 +178,7 @@ exports.googleSignIn = async (req, res) => {
       user = await newUser.save();
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = generateToken(user._id, res);
 
     res.status(200).json({ token, user });
   } catch (err) {

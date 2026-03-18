@@ -9,16 +9,19 @@ export default function AssistantWidget() {
 
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("assistantLogs");
-    if (saved) {
-      setMessages(JSON.parse(saved));
-    }
+    const fetchUser = async () => {
+      try {
+        const { data: user } = await api.get("/getUser");
+        const saved = localStorage.getItem(`assistant-chat-${user._id}`);
+        if (saved) {
+          setMessages(JSON.parse(saved));
+        }
+      } catch (err) {
+        console.error("Failed to fetch user for widget:", err);
+      }
+    };
+    fetchUser();
   }, []);
-
- 
-  useEffect(() => {
-    sessionStorage.setItem("assistantLogs", JSON.stringify(messages));
-  }, [messages]);
 
   const handleClick = () => {
     navigate("/assistant");

@@ -14,13 +14,13 @@ const MONGO_URI = process.env.MONGO_URI;
 
 app.use(cookieParser());
 
+const allowedOrigins = process.env.NODE_ENV === "production" 
+  ? [process.env.PROD_FRONTEND_URL, "https://expense-splitter-frontend-git-main-siddharth-sharmas-projects.vercel.app"]
+  : [process.env.DEV_FRONTEND_URL];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://expense-splitter-frontend.vercel.app",
-      "https://expense-splitter-frontend-git-main-siddharth-sharmas-projects.vercel.app",
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );

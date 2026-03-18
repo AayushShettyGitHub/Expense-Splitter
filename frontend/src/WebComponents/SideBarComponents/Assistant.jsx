@@ -262,8 +262,8 @@ const Assistant = ({ messages, setMessages }) => {
                 ? new Date().toISOString().slice(0, 10)
                 : date || new Date().toISOString().slice(0, 10);
 
-            await axios.post(
-              `http://localhost:3000/api/event/${eventId}/expense`,
+            await api.post(
+              `/event/${eventId}/expense`,
               {
                 description,
                 amount: parseFloat(amount),
