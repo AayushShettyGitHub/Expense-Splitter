@@ -4,21 +4,20 @@ const Settlement = require("../models/settlement");
 const { User, Expense: Transaction } = require('../models/schema');
 const Event = require("../models/Event");
 
-
 exports.addExpenseEvent = async (req, res) => {
   const { eventId } = req.params;
   const { description, amount, paidBy, splitBetween } = req.body;
 
   if (!description || !amount || !paidBy || !Array.isArray(splitBetween) || splitBetween.length === 0) {
-    return res.status(400).json({ message: "Missing or invalid fields" });
+    return res.status(400).json({ message: "Invalid expense data" });
   }
 
   try {
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Not a member of this trip" });
 
     const expense = new Expense({
       event: eventId,
@@ -29,11 +28,9 @@ exports.addExpenseEvent = async (req, res) => {
     });
 
     await expense.save();
-
-    res.status(201).json({ message: "Expense added successfully", expense });
+    res.status(201).json({ message: "Expense logged successfully", expense });
   } catch (err) {
-    console.error("Error adding expense:", err);
-    res.status(500).json({ message: "Failed to add expense", error: err.message });
+    res.status(500).json({ message: "Failed to log expense" });
   }
 };
 
@@ -42,15 +39,14 @@ exports.getEventById = async (req, res) => {
 
   try {
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Access denied to this trip" });
 
     res.status(200).json(event);
   } catch (err) {
-    console.error("Error fetching event:", err);
-    res.status(500).json({ message: "Failed to fetch event", error: err.message });
+    res.status(500).json({ message: "Error retrieving trip particulars" });
   }
 };
 
@@ -59,10 +55,10 @@ exports.getExpensesByEvent = async (req, res) => {
 
   try {
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Access denied" });
 
     const expenses = await Expense.find({ event: eventId })
       .populate("paidBy", "name email")
@@ -71,8 +67,7 @@ exports.getExpensesByEvent = async (req, res) => {
 
     res.status(200).json(expenses);
   } catch (err) {
-    console.error("Error fetching expenses:", err);
-    res.status(500).json({ message: "Failed to fetch expenses", error: err.message });
+    res.status(500).json({ message: "Failed to fetch trip history" });
   }
 };
 
@@ -81,25 +76,25 @@ exports.getOptimizedEventSettlements = async (req, res) => {
 
   try {
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Unauthorized access" });
 
-    const existingSettlement = await Settlement.findOne({ event: eventId }).sort({ createdAt: -1 });
-    if (existingSettlement) {
+    const existingBatch = await Settlement.findOne({ event: eventId, settlementEnded: false }).sort({ createdAt: -1 });
+    if (existingBatch && existingBatch.settlements.length > 0) {
       return res.status(200).json({ 
-        message: "Settlement already exists", 
-        settlements: existingSettlement.settlements,
-        settlementEnded: existingSettlement.settlementEnded
+        message: "Settlement calculation in progress", 
+        settlements: existingBatch.settlements,
+        settlementEnded: false
       });
     }
 
-    const expenses = await Expense.find({ event: eventId })
+    const expenses = await Expense.find({ event: eventId, settled: false })
       .populate("paidBy", "_id name")
       .populate("splitBetween", "_id name");
 
-    if (!expenses.length) return res.status(404).json({ message: "No expenses found for this event" });
+    if (!expenses.length) return res.status(404).json({ message: "Nothing to settle" });
 
     const netBalance = {};
     expenses.forEach(exp => {
@@ -151,25 +146,18 @@ exports.getOptimizedEventSettlements = async (req, res) => {
 
     await saved.save();
 
-    for (const s of settlements) {
-      const settlementExpense = new Transaction({
-        userId: s.from,
-        amount: s.amount,
-        category: "Settlement",
-        date: new Date(),
-        description: `You paid ₹${s.amount} to ${s.toName}`,
-        paymentMode: "Other",
-      });
-      await settlementExpense.save();
-    }
+    await Expense.updateMany(
+      { _id: { $in: expenses.map(e => e._id) } },
+      { $set: { settled: true } }
+    );
+
     res.status(200).json({ 
-      message: "Settlements calculated and stored", 
+      message: "Settlements computed successfully", 
       settlements: saved.settlements,
       settlementEnded: saved.settlementEnded
     });
   } catch (err) {
-    console.error("Error in getOptimizedEventSettlements:", err);
-    res.status(500).json({ message: "Failed to compute settlements", error: err.message });
+    res.status(500).json({ message: "Failed to compute settlements" });
   }
 };
 
@@ -179,31 +167,60 @@ exports.markEventSettlementPaid = async (req, res) => {
 
   try {
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Unauthorized member" });
 
-    const settlementDoc = await Settlement.findOne({ event: eventId });
-    if (!settlementDoc) return res.status(404).json({ message: "Settlement not found" });
+    const settlementDoc = await Settlement.findOne({
+      event: eventId,
+      "settlements._id": settlementId
+    });
+    if (!settlementDoc) return res.status(404).json({ message: "Settlement record not found" });
 
     const settlement = settlementDoc.settlements.id(settlementId);
-    if (!settlement) return res.status(404).json({ message: "Settlement not found" });
+    if (!settlement) return res.status(404).json({ message: "Transaction not found" });
 
-    if (settlement.to.toString() !== userId) {
-      return res.status(403).json({ message: "Not authorized to mark as paid" });
+    if (settlement.status === "paid") {
+      return res.status(400).json({ message: "This transaction is already marked as paid" });
+    }
+
+    const group = await Group.findOne({ members: userId, _id: event.group });
+    const isAdmin = group?.admin?.toString() === userId.toString();
+
+    if (String(settlement.to) !== String(userId) && !isAdmin) {
+      return res.status(403).json({ message: "No permission to mark this paid" });
     }
 
     settlement.status = "paid";
     settlement.updatedAt = new Date();
-
     settlementDoc.settlementEnded = settlementDoc.settlements.every(s => s.status === "paid");
 
     await settlementDoc.save();
-    res.status(200).json({ message: "Settlement marked as paid", settlement, settlementEnded: settlementDoc.settlementEnded });
+
+    const debtorRecord = new Transaction({
+      userId: settlement.from,
+      amount: settlement.amount,
+      category: "Settlement",
+      date: new Date(),
+      description: `Paid ₹${settlement.amount} to ${settlement.toName} (Settlement)`,
+      paymentMode: "Other",
+    });
+    await debtorRecord.save();
+
+    const creditorRecord = new Transaction({
+      userId: settlement.to,
+      amount: settlement.amount,
+      category: "Settlement",
+      date: new Date(),
+      description: `Received ₹${settlement.amount} from ${settlement.fromName} (Settlement)`,
+      paymentMode: "Other",
+    });
+    await creditorRecord.save();
+
+    res.status(200).json({ message: "Payment confirmed", settlement, settlementEnded: settlementDoc.settlementEnded });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to confirm payment" });
   }
 };
 
@@ -212,26 +229,48 @@ exports.getSettlementsByEvent = async (req, res) => {
     const { eventId } = req.params;
 
     const event = await Event.findById(eventId).populate("members", "_id");
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
-    }
+    if (!event) return res.status(404).json({ message: "Trip not found" });
 
     const isMember = event.members.some(m => m._id.toString() === req.userId.toString());
-    if (!isMember) return res.status(403).json({ message: "You are not a member of this event" });
+    if (!isMember) return res.status(403).json({ message: "Access forbidden" });
 
     const settlements = await Settlement.find({ event: eventId }).sort({ createdAt: -1 }).lean();
 
     if (!settlements || settlements.length === 0) {
-      return res.status(200).json({ settlements: [], settlementEnded: false });
+      return res.status(200).json({ settlementCycles: [], allSettled: false });
     }
 
-    const latest = settlements[0] || {};
+    const allSettled = settlements.every(s => s.settlementEnded);
+
     return res.status(200).json({
-      settlements: Array.isArray(latest.settlements) ? latest.settlements : [],
-      settlementEnded: !!latest.settlementEnded,
+      settlementCycles: settlements,
+      allSettled
     });
   } catch (err) {
-    console.error("Error fetching settlements:", err);
-    return res.status(500).json({ message: "Failed to fetch settlements." });
+    return res.status(500).json({ message: "Retrieval failed" });
+  }
+};
+
+exports.deleteExpense = async (req, res) => {
+  try {
+    const { eventId, expenseId } = req.params;
+    const expense = await Expense.findById(expenseId);
+    if (!expense) return res.status(404).json({ message: "Expense entry not found" });
+
+    const event = await Event.findById(eventId);
+    const group = await Group.findById(event.group);
+    
+    if (expense.paidBy.toString() !== req.userId && group.admin.toString() !== req.userId) {
+      return res.status(403).json({ message: "Deletion unauthorized" });
+    }
+
+    if (expense.settled) {
+      return res.status(400).json({ message: "Settled expenses cannot be deleted" });
+    }
+
+    await Expense.findByIdAndDelete(expenseId);
+    res.json({ message: "Expense record deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete expense entry" });
   }
 };

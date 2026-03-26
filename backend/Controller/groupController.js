@@ -1,8 +1,8 @@
 const Group = require("../models/groupSchema");
-const Split= require("../models/splitSchema");
+const Split = require("../models/splitSchema");
 const Event = require("../models/Event");
-const {User} = require("../models/schema");
-
+const Settlement = require("../models/settlement");
+const { User } = require("../models/schema");
 
 exports.createGroup = async (req, res) => {
   const { name, invitees } = req.body;
@@ -12,10 +12,7 @@ exports.createGroup = async (req, res) => {
   }
 
   try {
- 
     const currentUser = await User.findById(req.userId);
-
-    
     const invitedUsers = await User.find({
       email: { $in: invitees },
       _id: { $ne: req.userId }
@@ -30,13 +27,11 @@ exports.createGroup = async (req, res) => {
       pendingInvites: invitedUserIds,
     });
 
-    res.status(201).json({ message: "Group created", group });
+    res.status(201).json({ message: "Group created successfully", group });
   } catch (err) {
-    console.error("Group creation failed:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to create group" });
   }
 };
-
 
 exports.getMyGroups = async (req, res) => {
   try {
@@ -60,18 +55,13 @@ exports.getMyGroups = async (req, res) => {
 
     res.status(200).json(myGroups);
   } catch (err) {
-    res.status(500).json({
-      message: "Failed to fetch groups",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Failed to fetch groups" });
   }
 };
-
 
 exports.getGroupById = async (req, res) => {
   try {
     const groupId = req.params.id;
-
     const group = await Group.findById(groupId)
       .populate('admin', 'name')
       .populate('members', 'name')
@@ -83,32 +73,31 @@ exports.getGroupById = async (req, res) => {
 
     res.status(200).json(group);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch group", error: err.message });
+    res.status(500).json({ message: "Failed to fetch group particulars" });
   }
 };
-
-
-
 
 exports.acceptInvite = async (req, res) => {
   const groupId = req.params.id;
   const userId = req.userId;
 
-  const group = await Group.findById(groupId);
-  if (!group) return res.status(404).json({ message: "Group not found" });
+  try {
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
 
-  if (!group.pendingInvites.includes(userId)) {
-    return res.status(400).json({ message: "No invite for this user" });
+    if (!group.pendingInvites.includes(userId)) {
+      return res.status(400).json({ message: "Invite not found" });
+    }
+
+    group.pendingInvites = group.pendingInvites.filter(id => id.toString() !== userId);
+    group.members.push(userId);
+
+    await group.save();
+    res.status(200).json({ message: "Invite accepted", group });
+  } catch (err) {
+    res.status(500).json({ message: "Error accepting invite" });
   }
-
-  
-  group.pendingInvites = group.pendingInvites.filter(id => id.toString() !== userId);
-  group.members.push(userId);
-
-  await group.save();
-  res.status(200).json({ message: "Invite accepted", group });
 };
-
 
 exports.sendInvite = async (req, res) => {
   const { email } = req.body;
@@ -129,7 +118,6 @@ exports.sendInvite = async (req, res) => {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    
     const isMember = group.members.includes(userToInvite._id);
     const isPending = group.pendingInvites.includes(userToInvite._id);
 
@@ -137,20 +125,16 @@ exports.sendInvite = async (req, res) => {
       return res.status(400).json({ message: "User is already a member" });
     }
     if (isPending) {
-      return res.status(400).json({ message: "User already invited" });
+      return res.status(400).json({ message: "User is already invited" });
     }
 
-    
     group.pendingInvites.push(userToInvite._id);
     await group.save();
-    res.status(200).json({ message: "Invite sent", group });
+    res.status(200).json({ message: "Invite sent successfully", group });
   } catch (err) {
-    console.error("Failed to send invite:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to send invitation" });
   }
 };
-
-
 
 exports.kickUser = async (req, res) => {
   const groupId = req.params.groupId;
@@ -164,11 +148,11 @@ exports.kickUser = async (req, res) => {
     }
 
     if (group.admin.toString() !== currentUserId) {
-      return res.status(403).json({ message: "Only the admin can kick members" });
+      return res.status(403).json({ message: "Only administrators can remove members" });
     }
 
     if (userIdToKick === currentUserId) {
-      return res.status(400).json({ message: "Admin cannot kick themselves" });
+      return res.status(400).json({ message: "You cannot remove yourself as an administrator" });
     }
 
     const isMember = group.members.includes(userIdToKick);
@@ -182,22 +166,18 @@ exports.kickUser = async (req, res) => {
     group.pendingInvites = group.pendingInvites.filter(id => id.toString() !== userIdToKick);
 
     await group.save();
-
     res.status(200).json({ message: "User removed from group", group });
   } catch (err) {
-    console.error("Failed to remove user:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to remove user" });
   }
 };
-
-
 
 exports.createEvent = async (req, res) => {
   const { groupId } = req.params;
   const { name, members, startDate, endDate } = req.body;
 
   if (!name || !Array.isArray(members)) {
-    return res.status(400).json({ message: "Invalid input" });
+    return res.status(400).json({ message: "Please provide valid trip details" });
   }
 
   try {
@@ -207,7 +187,7 @@ exports.createEvent = async (req, res) => {
     }
 
     if (group.admin.toString() !== req.userId.toString()) {
-      return res.status(403).json({ message: "Only the group admin can create events" });
+      return res.status(403).json({ message: "Only administrators can create trips" });
     }
     const eventMembers = await User.find({ _id: { $in: members } });
     const eventMemberIds = eventMembers.map(user => user._id);
@@ -222,14 +202,11 @@ exports.createEvent = async (req, res) => {
     await event.save();
     event = await Event.findById(event._id).populate("members", "name email");
 
-    res.status(201).json({ message: "Event created", event });
+    res.status(201).json({ message: "Trip created successfully", event });
   } catch (err) {
-    console.error("Event creation failed:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to create trip" });
   }
 };
-
-
 
 exports.getEventsByGroup = async (req, res) => {
   const { groupId } = req.params;
@@ -246,12 +223,9 @@ exports.getEventsByGroup = async (req, res) => {
 
     res.status(200).json({ groupId, events });
   } catch (err) {
-    console.error("Failed to fetch events:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to fetch trips" });
   }
 };
-
-
 
 exports.setActiveEvent = async (req, res) => {
   try {
@@ -260,27 +234,23 @@ exports.setActiveEvent = async (req, res) => {
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: "Group not found" });
     if (group.admin.toString() !== req.userId.toString()) {
-      return res.status(403).json({ message: "Only the group admin can set active events" });
+      return res.status(403).json({ message: "Only administrators can activate trips" });
     }
-
 
     if (!group.activeEvents.includes(eventId)) {
       group.activeEvents.push(eventId);
       await group.save();
     }
 
-
     res.json({
-      message: "Event set as active",
+      message: "Trip is now active",
       activeEvents: group.activeEvents
     });
 
   } catch (error) {
-    console.error("Error in setActiveEvent:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Failed to activate trip" });
   }
 };
-
 
 exports.removeActiveEvent = async (req, res) => {
   try {
@@ -289,15 +259,15 @@ exports.removeActiveEvent = async (req, res) => {
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: "Group not found" });
     if (group.admin.toString() !== req.userId.toString()) {
-      return res.status(403).json({ message: "Only the group admin can set active events" });
+      return res.status(403).json({ message: "Only administrators can deactivate trips" });
     }
 
     group.activeEvents = group.activeEvents.filter(id => id.toString() !== eventId);
     await group.save();
 
-    res.json({ message: "Event removed from active", activeEvents: group.activeEvents });
+    res.json({ message: "Trip deactivated", activeEvents: group.activeEvents });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Failed to deactivate trip" });
   }
 };
 
@@ -310,10 +280,9 @@ exports.getActiveEvents = async (req, res) => {
 
     res.json(group.activeEvents);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Failed to fetch active trip history" });
   }
 };
-
 
 exports.getUserActiveEvents = async (req, res) => {
   try {
@@ -326,7 +295,6 @@ exports.getUserActiveEvents = async (req, res) => {
       return res.status(200).json([]);
     }
 
-  
     const activeEvents = [];
     groups.forEach((group) => {
       group.activeEvents.forEach((event) => {
@@ -340,10 +308,7 @@ exports.getUserActiveEvents = async (req, res) => {
 
     res.status(200).json(activeEvents);
   } catch (err) {
-    res.status(500).json({
-      error: "Failed to fetch active events",
-      details: err.message,
-    });
+    res.status(500).json({ message: "Failed to fetch your active trips" });
   }
 };
 
@@ -353,7 +318,7 @@ exports.setTargetEvent = async (req, res) => {
     const { eventId } = req.params;
 
     if (!eventId) {
-      return res.status(400).json({ message: "Event ID is required" });
+      return res.status(400).json({ message: "Trip selection is required" });
     }
 
     const user = await User.findById(userId);
@@ -362,7 +327,7 @@ exports.setTargetEvent = async (req, res) => {
     }
     const event = await Event.findById(eventId).select("group");
     if (!event) {
-      return res.status(404).json({ message: "Event not found" });
+      return res.status(404).json({ message: "Trip not found" });
     }
     if (user.targetEvent?.toString() === eventId) {
       user.targetEvent = null;
@@ -374,12 +339,30 @@ exports.setTargetEvent = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: user.targetEvent ? "Target event set" : "Target event unset",
+      message: user.targetEvent ? "Focused on new trip" : "Focus removed",
       targetEvent: user.targetEvent,
       grpId: user.targetEvent ? event.group : null, 
     });
   } catch (err) {
-    console.error("Error setting target event:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ success: false, message: "Focus change failed" });
+  }
+};
+
+exports.deleteEvent = async (req, res) => {
+  const { groupId, eventId } = req.params;
+  try {
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (group.admin.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: "Only administrators can delete trips" });
+    }
+
+    await Event.findByIdAndDelete(eventId);
+    await Split.deleteMany({ event: eventId });
+    await Settlement.deleteMany({ event: eventId });
+
+    res.json({ message: "Trip history permanently deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete trip history" });
   }
 };

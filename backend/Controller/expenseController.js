@@ -1,6 +1,6 @@
 const { Expense } = require('../models/schema');
+const { processRecurringExpenses } = require('../services/recurringProcessor');
 
-// Utility to get next occurrence date
 const getNextDate = (date, type) => {
   const next = new Date(date);
   switch (type) {
@@ -22,13 +22,12 @@ const getNextDate = (date, type) => {
   return next;
 };
 
-// Regular Expenses
 const addExpense = async (req, res) => {
   try {
     const { amount, category, date, description, paymentMode } = req.body;
 
     if (!amount || !category) {
-      return res.status(400).json({ message: 'Amount and category are required.' });
+      return res.status(400).json({ message: 'Amount and category are required' });
     }
 
     const expense = new Expense({
@@ -41,11 +40,9 @@ const addExpense = async (req, res) => {
     });
 
     const savedExpense = await expense.save();
-    // getIO().to(expense.group?.toString()).emit("expenseAdded", { expense }); // optional socket
     res.status(201).json(savedExpense);
   } catch (error) {
-    console.error("Error adding expense:", error);
-    res.status(500).json({ message: 'Server error. Could not add expense.' });
+    res.status(500).json({ message: 'Could not add expense' });
   }
 };
 
@@ -65,12 +62,10 @@ const getExpenses = async (req, res) => {
     const expenses = await Expense.find(filter).sort({ date: -1 });
     res.status(200).json(expenses);
   } catch (error) {
-    console.error("Error fetching filtered expenses:", error);
-    res.status(500).json({ message: "Server error. Could not fetch expenses." });
+    res.status(500).json({ message: 'Could not fetch expenses' });
   }
 };
 
-// Recurring Expenses
 const addRecurringExpense = async (req, res) => {
   try {
     const userId = req.userId;
@@ -94,10 +89,9 @@ const addRecurringExpense = async (req, res) => {
     });
 
     await expense.save();
-    res.status(201).json({ message: 'Recurring expense added successfully', expense });
+    res.status(201).json({ message: 'Recurring expense set up successfully', expense });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error adding recurring expense' });
+    res.status(500).json({ message: 'Could not set up recurring expense' });
   }
 };
 
@@ -106,8 +100,7 @@ const getRecurringExpenses = async (req, res) => {
     const expenses = await Expense.find({ userId: req.userId, isRecurring: true });
     res.status(200).json(expenses);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching recurring expenses' });
+    res.status(500).json({ message: 'Could not fetch recurring expenses' });
   }
 };
 
@@ -120,12 +113,11 @@ const toggleRecurringExpense = async (req, res) => {
     expense.isActive = !expense.isActive;
     await expense.save();
     res.json({
-      message: `Recurring expense ${expense.isActive ? 'resumed' : 'paused'}`,
+      message: `Recurring expense ${expense.isActive ? 'resumed' : 'paused'} successfully`,
       expense,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error updating recurring expense' });
+    res.status(500).json({ message: 'Could not update recurring expense' });
   }
 };
 
@@ -138,12 +130,19 @@ const deleteRecurringExpense = async (req, res) => {
     await Expense.findByIdAndDelete(req.params.id);
     res.json({ message: 'Recurring expense deleted successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error deleting recurring expense' });
+    res.status(500).json({ message: 'Could not delete recurring expense' });
   }
 };
 
-// Export all handlers together
+const processRecurring = async (req, res) => {
+  try {
+    await processRecurringExpenses();
+    res.json({ message: "Recurring expenses processed" });
+  } catch (err) {
+    res.status(500).json({ message: "Error processing recurring expenses" });
+  }
+};
+
 module.exports = {
   addExpense,
   getExpenses,
@@ -151,4 +150,5 @@ module.exports = {
   getRecurringExpenses,
   toggleRecurringExpense,
   deleteRecurringExpense,
+  processRecurring,
 };

@@ -1,7 +1,6 @@
 const Budget = require("../models/budgetSchema");
 
 exports.addBudget = async (req, res) => {
-
   const { month, year, amount } = req.body;
 
   try {
@@ -15,7 +14,7 @@ exports.addBudget = async (req, res) => {
     });
 
     if (existing) {
-      return res.status(400).json({ message: "Budget already exists for this month." });
+      return res.status(400).json({ message: "Budget is already set for this month" });
     }
 
     const budget = new Budget({
@@ -28,14 +27,11 @@ exports.addBudget = async (req, res) => {
     await budget.save();
     res.status(201).json(budget);
   } catch (error) {
-    console.error("Error adding budget:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Could not add budget" });
   }
 };
 
-
 exports.getBudget = async (req, res) => {
-
   const userId = req.userId;    
   const { month, year } = req.query;
 
@@ -57,11 +53,9 @@ exports.getBudget = async (req, res) => {
       year: budget.year,
     });
   } catch (err) {
-    console.error("Error in getting Budget:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    res.status(500).json({ message: "Failed to fetch budget" });
   }
 };
-
 
 exports.updateBudget = async (req, res) => {
   const { id } = req.params;
@@ -80,8 +74,7 @@ exports.updateBudget = async (req, res) => {
 
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Error updating budget:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Error updating budget" });
   }
 };
 
@@ -97,48 +90,6 @@ exports.deleteBudget = async (req, res) => {
 
     res.status(200).json({ message: "Budget deleted successfully" });
   } catch (error) {
-    console.error("Error deleting budget:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-exports.updateBudget = async (req, res) => {
-  const { id } = req.params;
-  const { amount } = req.body;
-
-  try {
-    const updated = await Budget.findOneAndUpdate(
-      { _id: id, userId: req.userId },
-      { amount },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Budget not found" });
-    }
-
-    res.status(200).json(updated);
-  } catch (error) {
-    console.error("Error updating budget:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-exports.deleteBudget = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const deleted = await Budget.findOneAndDelete({ _id: id, userId: req.userId });
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Budget not found" });
-    }
-
-    res.status(200).json({ message: "Budget deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting budget:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Could not delete budget" });
   }
 };

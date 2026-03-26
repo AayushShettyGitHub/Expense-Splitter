@@ -6,7 +6,7 @@ const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 const Routes = require('./routes/appRoutes.js');
-
+const { processRecurringExpenses } = require('./services/recurringProcessor.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,9 +28,9 @@ app.use(express.json());
 
 app.use("/api", Routes);
 
-
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} `);
-  connectToDatabase();
+app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
+  await connectToDatabase();
+  await processRecurringExpenses();
+  setInterval(processRecurringExpenses, 60 * 60 * 1000);
 });

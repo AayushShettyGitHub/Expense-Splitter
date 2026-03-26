@@ -2,15 +2,12 @@ require('dotenv').config();
 const streamifier = require("streamifier");
 const { generateToken } = require('../config/utils');
 const { uploadImageToCloudinary } = require('./cloudinary');
-
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models/schema');
 const { OAuth2Client } = require('google-auth-library');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-
 
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -22,13 +19,13 @@ exports.registerUser = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ message: 'Email is already registered' });
     }
 
     const strongPasswordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
     if (!strongPasswordRegex.test(password)) {
       return res.status(400).json({
-        message: "Password must contain letters, numbers, and at least one special character"
+        message: "Password must have letters, numbers, and a special character"
       });
     }
 
@@ -38,7 +35,7 @@ exports.registerUser = async (req, res) => {
     const token = generateToken(user._id, res);
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'Registration successful',
       token,
       user: {
         id: user._id,
@@ -47,11 +44,9 @@ exports.registerUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(400).json({ error: 'Registration failed', details: err.message });
+    res.status(400).json({ message: 'Could not complete registration' });
   }
 };
-
-
 
 exports.update = async (req, res) => {
   try {
@@ -59,12 +54,10 @@ exports.update = async (req, res) => {
     const updates = { ...req.body };
 
     if (req.file) {
-      
       const imageUrl = await uploadImageToCloudinary(req.file.buffer, "profile_images");
       updates.profileImage = imageUrl;
     }
 
-    // Prevent sensitive updates
     delete updates.password;
     delete updates.resetOTP;
     delete updates.resetOTPExpiry;
@@ -85,29 +78,24 @@ exports.update = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Profile update error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Failed to update profile" });
   }
 };
 
-
-
 exports.loginUser = async (req, res) => {
-  
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email }).select("+password");
 
-    
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
     
     const isMatch = await bcrypt.compare(password, user.password);
    
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
     
     const token = generateToken(user._id, res);
@@ -122,36 +110,30 @@ exports.loginUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(400).json({ error: 'Login failed', details: err.message });
+    res.status(400).json({ message: 'Login failed' });
   }
 };
 
 exports.logout = (req, res) => {
   try {
-
     res.clearCookie("jwt", {
       httpOnly: true,
       sameSite: "strict",
-    
     });
-
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res.status(500).json({ message: "Logout failed" });
   }
 };
-
 
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ message: "Could not fetch user data" });
   }
 };
-
-
 
 exports.googleSignIn = async (req, res) => {
   const { googleToken } = req.body;
@@ -182,6 +164,6 @@ exports.googleSignIn = async (req, res) => {
 
     res.status(200).json({ token, user });
   } catch (err) {
-    res.status(400).json({ error: 'Google authentication failed', details: err.message });
+    res.status(400).json({ message: 'Google sign-in failed' });
   }
 };
