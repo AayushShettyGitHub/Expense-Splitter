@@ -88,9 +88,9 @@ export function Login() {
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
-                  name="name"             // ← must match formData key
+                  name="name"
                   value={formData.name}
-                  onChange={handleChange} // ← firing?
+                  onChange={handleChange}
                   placeholder="Jane Doe"
                 />
               </div>
@@ -100,7 +100,7 @@ export function Login() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                name="email"              // ← also here
+                name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
@@ -112,7 +112,7 @@ export function Login() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
-                name="password"           // ← and here
+                name="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange}

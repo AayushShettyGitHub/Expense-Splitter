@@ -51,9 +51,6 @@ UserSchema.pre('save', async function (next) {
   }
   next();
 });
-
-
-//Expense Schema
 const ExpenseSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,

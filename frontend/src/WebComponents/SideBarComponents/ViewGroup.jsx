@@ -599,6 +599,15 @@ const ViewGroup = () => {
   };
 
   const selectTrip = (trip) => {
+    const isMember = trip.members.some(m => String(m._id) === String(user?._id));
+    if (!isMember) {
+      toast({ 
+        title: "Access Restricted", 
+        description: "You are not a participant of this trip.", 
+        variant: "destructive" 
+      });
+      return;
+    }
     setSelectedTrip(trip);
   };
 

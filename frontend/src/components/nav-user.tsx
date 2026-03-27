@@ -27,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+// @ts-ignore
 import api from "@/lib/api"
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
@@ -59,6 +60,7 @@ export function NavUser() {
   const handleLogout = async () => {
     try {
       await api.post("/logout", {})
+      localStorage.removeItem("isAuthenticated");
       navigate("/login")
     } catch (error) {
       console.error("Logout failed:", error)
@@ -70,7 +72,7 @@ export function NavUser() {
   }
 
   if (!user) {
-    return null // or a loading spinner
+    return null
   }
 
   return (

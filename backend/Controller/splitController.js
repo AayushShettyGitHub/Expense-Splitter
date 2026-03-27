@@ -138,6 +138,18 @@ exports.getOptimizedEventSettlements = async (req, res) => {
       if (Math.abs(creditor.balance) < 0.01) j++;
     }
 
+    if (settlements.length === 0) {
+      await Expense.updateMany(
+        { _id: { $in: expenses.map(e => e._id) } },
+        { $set: { settled: true } }
+      );
+      return res.status(200).json({ 
+        message: "Expenses settled internally. No transactions required.", 
+        settlements: [],
+        settlementEnded: true
+      });
+    }
+
     const saved = new Settlement({
       event: eventId,
       settlements,

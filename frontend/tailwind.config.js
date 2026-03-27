@@ -1,7 +1,7 @@
-// D:\ExpenseSplitter\frontend\tailwind.config.js
+
 import { fontFamily } from "tailwindcss/defaultTheme"
 
-/** @type {import('tailwindcss').Config} */
+
 export default {
   darkMode: ["class"], 
   content: [
@@ -103,5 +103,5 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")], // You'll install this below
+  plugins: [require("tailwindcss-animate")],
 }

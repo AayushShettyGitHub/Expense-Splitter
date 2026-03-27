@@ -26,8 +26,8 @@ export function Login() {
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // NEW STATE
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // NEW STATE
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const googleBtnRef = useRef(null);
 
@@ -85,8 +85,7 @@ export function Login() {
 
       );
       Cookies.set("jwt", res.data.token, { expires: 7 });
-      
-      // Clear all assistant chats to ensure privacy for the new login
+      localStorage.setItem("isAuthenticated", "true");
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith("assistant-chat-")) {
           localStorage.removeItem(key);
@@ -106,8 +105,7 @@ export function Login() {
         googleToken: response.credential,
       });
       Cookies.set("jwt", res.data.token, { expires: 7 });
-
-      // Clear all assistant chats to ensure privacy for the new login
+      localStorage.setItem("isAuthenticated", "true");
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith("assistant-chat-")) {
           localStorage.removeItem(key);
@@ -179,7 +177,7 @@ export function Login() {
                 <Input
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"} // TOGGLE TYPE
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -202,7 +200,7 @@ export function Login() {
                 <div className="relative">
                   <Input
                     id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"} // TOGGLE TYPE
+                    type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required

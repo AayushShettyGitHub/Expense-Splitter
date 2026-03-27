@@ -36,7 +36,7 @@ export default function AssistantWidget() {
         <MessageCircle size={28} />
       </button>
 
-      {/* Tooltip */}
+      {}
       <div className="absolute bottom-16 right-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-3 py-1 shadow-lg">
         Open Assistant
       </div>

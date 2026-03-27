@@ -22,7 +22,6 @@ const MyGroups = () => {
   const fetchGroups = async () => {
     try {
       const res = await api.get("/my-groups");
-      // Filter out groups that are pending invites from the "My Groups" list
       const actualGroups = res.data.filter(g => !g.isPendingInvite);
       setGroups(actualGroups);
     } catch (err) {

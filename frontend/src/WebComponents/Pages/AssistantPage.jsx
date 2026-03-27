@@ -7,15 +7,11 @@ const AssistantPage = () => {
   const [messages, setMessages] = useState([{ role: "assistant", content: "Hello! How can I help you?" }]);
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // 1. Get the current user
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const { data: user } = await api.get("/getUser");
         setUserId(user._id);
-        
-        // 2. Load messages for THIS user
         const saved = localStorage.getItem(`assistant-chat-${user._id}`);
         if (saved) {
           setMessages(JSON.parse(saved));
@@ -28,8 +24,6 @@ const AssistantPage = () => {
     };
     fetchUser();
   }, []);
-
-  // 3. Save messages when they change, but ONLY if we have a userId
   useEffect(() => {
     if (userId) {
       localStorage.setItem(`assistant-chat-${userId}`, JSON.stringify(messages));

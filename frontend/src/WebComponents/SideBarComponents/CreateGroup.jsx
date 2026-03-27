@@ -51,7 +51,7 @@ const CreateGroup = () => {
     try {
       await api.post("/create", { name: groupName, invitees });
       toast({ title: "Group Created!", description: `${groupName} is ready for splitting.` });
-      navigate("/mygroups");
+      navigate("/viewgroup");
     } catch (error) {
       toast({ title: "Failed", description: error?.response?.data?.message || error.message, variant: "destructive" });
     } finally {

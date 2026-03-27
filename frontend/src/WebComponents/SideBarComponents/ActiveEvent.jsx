@@ -70,14 +70,14 @@ const ActiveEvent = ({ onTargetSelect }) => {
                   isTarget ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/20 ring-4 ring-primary/20" : "bg-card/50 backdrop-blur-sm shadow-md"
                 }`}
               >
-                <div className={`absolute top-0 left-0 w-1.5 h-full ${isTarget ? "bg-white/50" : "bg-primary/40"} group-hover:bg-primary transition-colors`} />
+                <div className={`absolute top-0 left-0 w-1.5 h-full ${isTarget ? "bg-primary-foreground/50" : "bg-primary/40"} group-hover:bg-primary transition-colors`} />
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
-                    <div className={`p-3 rounded-2xl ${isTarget ? "bg-white/20" : "bg-primary/10 text-primary"} transition-colors`}>
+                    <div className={`p-3 rounded-2xl ${isTarget ? "bg-primary-foreground/20" : "bg-primary/10 text-primary"} transition-colors`}>
                       <Wallet size={24} />
                     </div>
                     {isTarget && (
-                       <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none font-black tracking-widest text-[10px]">
+                       <Badge variant="secondary" className="bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground border-none font-black tracking-widest text-[10px]">
                          CURRENT FOCUS
                        </Badge>
                     )}
@@ -85,16 +85,16 @@ const ActiveEvent = ({ onTargetSelect }) => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <CardTitle className={`text-2xl font-bold line-clamp-1 italic ${isTarget ? "text-white" : ""}`}>
+                    <CardTitle className={`text-2xl font-bold line-clamp-1 italic ${isTarget ? "text-primary-foreground" : ""}`}>
                       {event.name}
                     </CardTitle>
-                    <CardDescription className={`${isTarget ? "text-white/80" : "text-muted-foreground"} font-medium mt-1`}>
+                    <CardDescription className={`${isTarget ? "text-primary-foreground/80" : "text-muted-foreground"} font-medium mt-1`}>
                       Group: {event.group?.name}
                     </CardDescription>
                   </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                     <span className={`text-xs font-bold uppercase tracking-widest ${isTarget ? "text-white/70" : "text-primary"}`}>View Details</span>
-                     <ChevronRight className={`transition-transform duration-300 group-hover:translate-x-1 ${isTarget ? "text-white" : "text-primary"}`} size={20} />
+                  <div className="flex items-center justify-between pt-4 border-t border-primary-foreground/10">
+                     <span className={`text-xs font-bold uppercase tracking-widest ${isTarget ? "text-primary-foreground/70" : "text-primary"}`}>View Details</span>
+                     <ChevronRight className={`transition-transform duration-300 group-hover:translate-x-1 ${isTarget ? "text-primary-foreground" : "text-primary"}`} size={20} />
                   </div>
                 </CardContent>
               </Card>
@@ -116,17 +116,17 @@ const ActiveEvent = ({ onTargetSelect }) => {
       {targetEvent && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 duration-500">
            <Card className="bg-primary/90 text-primary-foreground backdrop-blur-xl border-none shadow-2xl px-6 py-4 flex items-center gap-6 rounded-2xl min-w-[300px]">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                 <Target className="text-white" size={24} />
+              <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+                 <Target className="text-primary-foreground" size={24} />
               </div>
               <div className="flex-1">
-                 <p className="text-[10px] font-black uppercase tracking-[2px] text-white/60 leading-none mb-1">Active Focus</p>
+                 <p className="text-[10px] font-black uppercase tracking-[2px] text-primary-foreground/60 leading-none mb-1">Active Focus</p>
                  <p className="text-lg font-bold leading-tight truncate max-w-[200px]">
                     {events.find((e) => e._id === targetEvent)?.name || "Trip"}
                  </p>
               </div>
-              <div className="h-8 w-[1px] bg-white/10" />
-              <Activity className="text-white/40 animate-pulse" size={20} />
+              <div className="h-8 w-[1px] bg-primary-foreground/10" />
+              <Activity className="text-primary-foreground/40 animate-pulse" size={20} />
            </Card>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 
 import { Login } from './WebComponents/AuthComponents/Login';
 import Homepage from './WebComponents/Pages/Homepage';
@@ -18,30 +18,43 @@ import { SelectedGroupProvider } from './context/SelectedGroupContext';
 import AssistantPage from './WebComponents/Pages/AssistantPage';
 import AssistantWidget from './WebComponents/SideBarComponents/AssistantWidget';
 
+const ProtectedRoutes = () => {
+  const token = localStorage.getItem("isAuthenticated");
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+};
+
 function Layout() {
   const location = useLocation();
 
-  const hideAssistantOn = ["/login","/assistant"];
+  const hideAssistantOn = ["/login", "/assistant"];
 
   return (
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/homepage" element={<Homepage />} />
-        <Route path="/manage" element={<AddExpense />} />
-        <Route path="/view" element={<ViewExpPage />} />
-        <Route path="/budget" element={<BudgetPage />} />
-        <Route path="/group" element={<GroupPage />} />
-        <Route path="/viewgroup" element={<Groups />} />
-        <Route path="/groupview" element={<ViewGroupPage />} />
-        <Route path="/invites" element={<InvitePage />} />
-        <Route path="/assistant" element={<AssistantPage />} />
-        <Route path="/active-events" element={<ActiveEventPage />} />
+
+        {}
+        <Route element={<ProtectedRoutes />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/homepage" element={<Homepage />} />
+          <Route path="/manage" element={<AddExpense />} />
+          <Route path="/view" element={<ViewExpPage />} />
+          <Route path="/budget" element={<BudgetPage />} />
+          <Route path="/group" element={<GroupPage />} />
+          <Route path="/viewgroup" element={<Groups />} />
+          <Route path="/groupview" element={<ViewGroupPage />} />
+          <Route path="/invites" element={<InvitePage />} />
+          <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/active-events" element={<ActiveEventPage />} />
+        </Route>
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
-      {/* Only show assistant if not on excluded paths */}
+
       {!hideAssistantOn.includes(location.pathname) && <AssistantWidget />}
     </>
   );

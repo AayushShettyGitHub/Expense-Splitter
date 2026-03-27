@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "@/lib/api"; // Assuming '@/lib/api' provides the 'api' instance
+import api from "@/lib/api";
 
 function ResetPass() {
   const [email, setEmail] = useState("");
@@ -12,8 +12,6 @@ function ResetPass() {
   const handleReset = async (e) => {
     e.preventDefault();
     try {
-      // The original code already uses 'api.post'.
-      // The instruction implies ensuring 'api' is from '@/lib/api'.
       const res = await api.post("/reset-password", {
         email,
         newPassword,

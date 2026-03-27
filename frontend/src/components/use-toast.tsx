@@ -25,7 +25,7 @@ export function ToastProviderWrapper({ children }: { children: React.ReactNode }
   const toast = (toast: Omit<Toast, "id">) => {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { ...toast, id }]);
-    setTimeout(() => dismiss(id), 3000); // auto-dismiss after 3s
+    setTimeout(() => dismiss(id), 3000);
   };
 
   const dismiss = (id: string) => {
